@@ -1,0 +1,8 @@
+{
+  "name": "Henry's Hustle",
+  "description": "An action-packed 3D Subway Surfers style runner customized for 7-year-old Henry, packed with awesome gymnastics flips, vaults, cartwheels, and city rooftop obstacles!",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
