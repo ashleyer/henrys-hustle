@@ -4,13 +4,7 @@
  */
 
 import * as THREE from 'three';
-import { CharacterOutfit } from '../types/game';
-
-export interface HenryAnimationState {
-  type: 'RUN' | 'JUMP' | 'BACKFLIP' | 'CARTWHEEL' | 'SLIDE' | 'VAULT' | 'BALANCE' | 'STUMBLE' | 'VICTORY';
-  time: number;
-  duration: number;
-}
+import { CharacterOutfit, GymnasticsTrickType } from '../types/game';
 
 export class HenryCharacter {
   public group: THREE.Group;
@@ -24,31 +18,38 @@ export class HenryCharacter {
   public rightLeg: THREE.Group;
   public leftLowerLeg: THREE.Group;
   public rightLowerLeg: THREE.Group;
-  public leftHand: THREE.Group;
-  public rightHand: THREE.Group;
 
-  // Chalk particle effect
+  // Equipment & Accessories
+  public boardMesh: THREE.Group;
+  public springShoesLeft: THREE.Mesh;
+  public springShoesRight: THREE.Mesh;
+  public gymRingsGroup: THREE.Group;
+  public contactShadow: THREE.Mesh;
+
+  // Particles
   private chalkParticles: THREE.Points;
   private chalkGeo: THREE.BufferGeometry;
   private chalkPositions: Float32Array;
-  private chalkOpacities: Float32Array;
 
-  // Materials for outfit customization
+  // Materials
   private suitMat: THREE.MeshStandardMaterial;
   private trimMat: THREE.MeshStandardMaterial;
   private skinMat: THREE.MeshStandardMaterial;
   private hairMat: THREE.MeshStandardMaterial;
   private shoesMat: THREE.MeshStandardMaterial;
   private headbandMat: THREE.MeshStandardMaterial;
-  private goldStarMat: THREE.MeshStandardMaterial;
+  private boardMat: THREE.MeshStandardMaterial;
 
-  private animState: HenryAnimationState = {
-    type: 'RUN',
-    time: 0,
-    duration: 1.0,
-  };
-
+  // Animation state
+  private currentAnim: 'RUN' | 'JUMP' | 'SLIDE' | 'VAULT' | 'FLIP' | 'CARTWHEEL' | 'TWIST' | 'BALANCE' | 'BOARD' | 'FLY' | 'STUMBLE' | 'VICTORY' = 'RUN';
+  private animTimer: number = 0;
+  private animDuration: number = 0.6;
   private runCycleTime: number = 0;
+
+  // Active gear flags
+  public isBoardActive: boolean = false;
+  public isSpringShoesActive: boolean = false;
+  public isFlyingActive: boolean = false;
 
   constructor(outfit?: CharacterOutfit) {
     this.group = new THREE.Group();
@@ -62,43 +63,45 @@ export class HenryCharacter {
     });
 
     this.hairMat = new THREE.MeshStandardMaterial({
-      color: outfit ? outfit.hairColor : 0x7c4722, // Chestnut brown
+      color: outfit ? outfit.hairColor : 0x7c4722,
       roughness: 0.8,
       metalness: 0.05,
     });
 
     this.suitMat = new THREE.MeshStandardMaterial({
-      color: outfit ? outfit.suitColor : 0x1e40af, // Team Royal Blue
+      color: outfit ? outfit.suitColor : 0x1d4ed8,
       roughness: 0.35,
       metalness: 0.25,
     });
 
     this.trimMat = new THREE.MeshStandardMaterial({
-      color: outfit ? outfit.trimColor : 0xfbbf24, // Gold trim
+      color: outfit ? outfit.trimColor : 0xfacc15,
       roughness: 0.2,
       metalness: 0.5,
     });
 
     this.shoesMat = new THREE.MeshStandardMaterial({
-      color: outfit ? outfit.shoesColor : 0xef4444, // Red sneakers / gymnastic gym shoes
+      color: outfit ? outfit.shoesColor : 0xef4444,
       roughness: 0.4,
       metalness: 0.1,
     });
 
     this.headbandMat = new THREE.MeshStandardMaterial({
-      color: outfit ? outfit.headbandColor : 0xf59e0b, // Amber headband
+      color: outfit ? outfit.headbandColor : 0xf59e0b,
       roughness: 0.5,
     });
 
-    this.goldStarMat = new THREE.MeshStandardMaterial({
-      color: 0xffd700,
-      roughness: 0.2,
+    this.boardMat = new THREE.MeshStandardMaterial({
+      color: 0x06b6d4,
       metalness: 0.8,
+      roughness: 0.2,
+      emissive: 0x0891b2,
+      emissiveIntensity: 0.4,
     });
 
-    // Hierarchical body assembly
+    // 1. Hips Root
     this.hips = new THREE.Group();
-    this.hips.position.y = 0.72; // Centered at hips
+    this.hips.position.y = 0.72;
     this.group.add(this.hips);
 
     // Hips / Lower Leotard
@@ -107,12 +110,12 @@ export class HenryCharacter {
     hipsMesh.position.y = 0.05;
     this.hips.add(hipsMesh);
 
-    // Belt / Gold trim
-    const belt = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.05, 0.26), this.trimMat);
+    // Gold trim belt
+    const belt = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.06, 0.26), this.trimMat);
     belt.position.y = 0.14;
     this.hips.add(belt);
 
-    // Chest / Torso
+    // 2. Chest & Torso
     this.chest = new THREE.Group();
     this.chest.position.y = 0.16;
     this.hips.add(this.chest);
@@ -122,7 +125,7 @@ export class HenryCharacter {
     chestMesh.position.y = 0.18;
     this.chest.add(chestMesh);
 
-    // Front Chest Decal (Henry's "#7" emblem + Gold Star)
+    // Front Jersey Decal ("#7")
     const jerseyDecal = this.createJerseyDecalCanvas();
     const decalMat = new THREE.MeshBasicMaterial({
       map: jerseyDecal,
@@ -135,7 +138,7 @@ export class HenryCharacter {
     decalMesh.position.set(0, 0.2, 0.135);
     this.chest.add(decalMesh);
 
-    // Back Decal ("HENRY")
+    // Back Decal ("HENRY 7")
     const backDecal = this.createBackDecalCanvas();
     const backMat = new THREE.MeshBasicMaterial({
       map: backDecal,
@@ -149,7 +152,7 @@ export class HenryCharacter {
     backMesh.rotation.y = Math.PI;
     this.chest.add(backMesh);
 
-    // Head
+    // 3. Head & Face
     this.head = new THREE.Group();
     this.head.position.y = 0.42;
     this.chest.add(this.head);
@@ -159,28 +162,26 @@ export class HenryCharacter {
     headMesh.position.y = 0.16;
     this.head.add(headMesh);
 
-    // Headband
     const headband = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.08, 0.34), this.headbandMat);
     headband.position.y = 0.26;
     this.head.add(headband);
 
-    // Spiky Gymnastic Hair
+    // Hair
     this.hairGroup = new THREE.Group();
     this.head.add(this.hairGroup);
     const hairTop = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.1, 0.36), this.hairMat);
     hairTop.position.y = 0.33;
     this.hairGroup.add(hairTop);
 
-    // Hair tufts
     for (let i = -1; i <= 1; i++) {
-      const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.12, 4), this.hairMat);
-      tuft.position.set(i * 0.1, 0.4, 0.05);
+      const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.14, 4), this.hairMat);
+      tuft.position.set(i * 0.1, 0.41, 0.05);
       tuft.rotation.x = -0.2;
       tuft.rotation.z = -i * 0.25;
       this.hairGroup.add(tuft);
     }
 
-    // Face features (big enthusiastic cartoon eyes, smile)
+    // Expressive face
     const faceDecal = this.createFaceCanvas();
     const faceMat = new THREE.MeshBasicMaterial({
       map: faceDecal,
@@ -193,7 +194,7 @@ export class HenryCharacter {
     faceMesh.position.set(0, 0.14, 0.165);
     this.head.add(faceMesh);
 
-    // Shoulders & Arms
+    // 4. Arms with Gymnastics Grips
     // Left Arm
     this.leftArm = new THREE.Group();
     this.leftArm.position.set(0.24, 0.32, 0);
@@ -208,14 +209,9 @@ export class HenryCharacter {
     leftForearm.position.y = -0.28;
     this.leftArm.add(leftForearm);
 
-    // Gymnastics wrist grips / chalk wraps
     const leftGrip = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.12), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 }));
     leftGrip.position.y = -0.34;
     this.leftArm.add(leftGrip);
-
-    this.leftHand = new THREE.Group();
-    this.leftHand.position.y = -0.42;
-    this.leftArm.add(this.leftHand);
 
     // Right Arm
     this.rightArm = new THREE.Group();
@@ -231,16 +227,11 @@ export class HenryCharacter {
     rightForearm.position.y = -0.28;
     this.rightArm.add(rightForearm);
 
-    // Gymnastics wrist grip right
     const rightGrip = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.12), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 }));
     rightGrip.position.y = -0.34;
     this.rightArm.add(rightGrip);
 
-    this.rightHand = new THREE.Group();
-    this.rightHand.position.y = -0.42;
-    this.rightArm.add(this.rightHand);
-
-    // Legs
+    // 5. Legs
     // Left Leg
     this.leftLeg = new THREE.Group();
     this.leftLeg.position.set(0.11, -0.05, 0);
@@ -263,6 +254,15 @@ export class HenryCharacter {
     leftShoe.position.set(0, -0.32, 0.04);
     leftShoe.castShadow = true;
     this.leftLowerLeg.add(leftShoe);
+
+    // Spring shoe accessory (spring coil under left foot)
+    this.springShoesLeft = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.08, 0.14, 8),
+      new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.9, roughness: 0.1 })
+    );
+    this.springShoesLeft.position.set(0, -0.42, 0.04);
+    this.springShoesLeft.visible = false;
+    this.leftLowerLeg.add(this.springShoesLeft);
 
     // Right Leg
     this.rightLeg = new THREE.Group();
@@ -287,37 +287,113 @@ export class HenryCharacter {
     rightShoe.castShadow = true;
     this.rightLowerLeg.add(rightShoe);
 
-    // Chalk Dust Particle Cloud (procedural)
-    const particleCount = 40;
-    this.chalkGeo = new THREE.BufferGeometry();
-    this.chalkPositions = new Float32Array(particleCount * 3);
-    this.chalkOpacities = new Float32Array(particleCount);
+    this.springShoesRight = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.08, 0.14, 8),
+      new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.9, roughness: 0.1 })
+    );
+    this.springShoesRight.position.set(0, -0.42, 0.04);
+    this.springShoesRight.visible = false;
+    this.rightLowerLeg.add(this.springShoesRight);
 
-    for (let i = 0; i < particleCount; i++) {
-      this.chalkPositions[i * 3 + 0] = (Math.random() - 0.5) * 0.4;
-      this.chalkPositions[i * 3 + 1] = Math.random() * 0.5;
-      this.chalkPositions[i * 3 + 2] = (Math.random() - 0.5) * 0.4;
-      this.chalkOpacities[i] = 0;
-    }
+    // 6. Gymnastics Chalk-Board (Hoverboard)
+    this.boardMesh = new THREE.Group();
+    this.boardMesh.position.set(0, 0.08, 0);
+    this.boardMesh.visible = false;
 
-    this.chalkGeo.setAttribute('position', new THREE.BufferAttribute(this.chalkPositions, 3));
+    // Aerodynamic board deck
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.08, 1.6), this.boardMat);
+    deck.castShadow = true;
+    this.boardMesh.add(deck);
 
-    const chalkTexture = this.createChalkTexture();
-    const chalkMat = new THREE.PointsMaterial({
-      size: 0.18,
-      map: chalkTexture,
+    // Glowing neon edge trims
+    const neonTrim = new THREE.Mesh(
+      new THREE.BoxGeometry(0.78, 0.04, 1.62),
+      new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+    );
+    this.boardMesh.add(neonTrim);
+
+    // Magnetic levitation thruster rings underneath
+    [-0.5, 0.5].forEach(tz => {
+      const thruster = new THREE.Mesh(
+        new THREE.TorusGeometry(0.15, 0.04, 8, 16),
+        new THREE.MeshBasicMaterial({ color: 0xfacc15 })
+      );
+      thruster.rotation.x = Math.PI / 2;
+      thruster.position.set(0, -0.06, tz);
+      this.boardMesh.add(thruster);
+    });
+
+    this.group.add(this.boardMesh);
+
+    // 7. Olympic Gymnastics Sky Rings
+    this.gymRingsGroup = new THREE.Group();
+    this.gymRingsGroup.visible = false;
+
+    [-0.32, 0.32].forEach(rx => {
+      const strap = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.02, 0.02, 1.2, 4),
+        new THREE.MeshStandardMaterial({ color: 0xffffff })
+      );
+      strap.position.set(rx, 1.6, 0);
+      this.gymRingsGroup.add(strap);
+
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.14, 0.03, 8, 16),
+        new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.3, metalness: 0.7 })
+      );
+      ring.position.set(rx, 1.0, 0);
+      this.gymRingsGroup.add(ring);
+    });
+
+    this.group.add(this.gymRingsGroup);
+
+    // 8. Dynamic Blob Contact Shadow (Grounding)
+    const shadowCanvas = document.createElement('canvas');
+    shadowCanvas.width = 128;
+    shadowCanvas.height = 128;
+    const sCtx = shadowCanvas.getContext('2d')!;
+    const grad = sCtx.createRadialGradient(64, 64, 4, 64, 64, 60);
+    grad.addColorStop(0, 'rgba(0, 0, 0, 0.65)');
+    grad.addColorStop(0.6, 'rgba(0, 0, 0, 0.3)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    sCtx.fillStyle = grad;
+    sCtx.fillRect(0, 0, 128, 128);
+
+    const shadowTex = new THREE.CanvasTexture(shadowCanvas);
+    const shadowMat = new THREE.MeshBasicMaterial({
+      map: shadowTex,
       transparent: true,
-      opacity: 0.8,
-      blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
 
+    this.contactShadow = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.2), shadowMat);
+    this.contactShadow.rotation.x = -Math.PI / 2;
+    this.contactShadow.position.y = 0.02; // Just above ground
+    this.group.add(this.contactShadow);
+
+    // 9. Chalk particles
+    const particleCount = 45;
+    this.chalkGeo = new THREE.BufferGeometry();
+    this.chalkPositions = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount; i++) {
+      this.chalkPositions[i * 3 + 0] = (Math.random() - 0.5) * 0.4;
+      this.chalkPositions[i * 3 + 1] = Math.random() * 0.4;
+      this.chalkPositions[i * 3 + 2] = (Math.random() - 0.5) * 0.4;
+    }
+    this.chalkGeo.setAttribute('position', new THREE.BufferAttribute(this.chalkPositions, 3));
+
+    const chalkMat = new THREE.PointsMaterial({
+      size: 0.16,
+      map: this.createChalkTexture(),
+      transparent: true,
+      opacity: 0.75,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
     this.chalkParticles = new THREE.Points(this.chalkGeo, chalkMat);
-    this.chalkParticles.position.y = 0.5;
     this.group.add(this.chalkParticles);
   }
 
-  // Create front jersey canvas texture "#7"
   private createJerseyDecalCanvas(): THREE.CanvasTexture {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
@@ -325,21 +401,17 @@ export class HenryCharacter {
     const ctx = canvas.getContext('2d')!;
 
     ctx.clearRect(0, 0, 256, 256);
-
-    // White circle backdrop
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.arc(128, 128, 90, 0, Math.PI * 2);
+    ctx.arc(128, 128, 92, 0, Math.PI * 2);
     ctx.fill();
 
-    // Gold border
     ctx.lineWidth = 14;
     ctx.strokeStyle = '#f59e0b';
     ctx.stroke();
 
-    // Text "#7"
     ctx.fillStyle = '#1e3a8a';
-    ctx.font = '900 120px sans-serif';
+    ctx.font = '900 128px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('7', 128, 134);
@@ -349,7 +421,6 @@ export class HenryCharacter {
     return texture;
   }
 
-  // Back decal with "HENRY"
   private createBackDecalCanvas(): THREE.CanvasTexture {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
@@ -357,15 +428,14 @@ export class HenryCharacter {
     const ctx = canvas.getContext('2d')!;
 
     ctx.clearRect(0, 0, 256, 192);
-
     ctx.fillStyle = '#fbbf24';
     ctx.font = '900 52px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('HENRY', 128, 70);
+    ctx.fillText('HENRY', 128, 65);
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = '900 68px sans-serif';
+    ctx.font = '900 74px sans-serif';
     ctx.fillText('7', 128, 130);
 
     const texture = new THREE.CanvasTexture(canvas);
@@ -373,7 +443,6 @@ export class HenryCharacter {
     return texture;
   }
 
-  // Cute energetic boy face canvas
   private createFaceCanvas(): THREE.CanvasTexture {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
@@ -382,29 +451,25 @@ export class HenryCharacter {
 
     ctx.clearRect(0, 0, 256, 192);
 
-    // Friendly bright eyes
     const drawEye = (x: number) => {
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
       ctx.ellipse(x, 70, 24, 28, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.lineWidth = 4;
-      ctx.strokeStyle = '#333333';
+      ctx.strokeStyle = '#1e293b';
       ctx.stroke();
 
-      // Iris (sparkling bright brown / hazel)
-      ctx.fillStyle = '#3b82f6';
+      ctx.fillStyle = '#0284c7';
       ctx.beginPath();
       ctx.arc(x + 2, 72, 14, 0, Math.PI * 2);
       ctx.fill();
 
-      // Pupil
-      ctx.fillStyle = '#111827';
+      ctx.fillStyle = '#0f172a';
       ctx.beginPath();
       ctx.arc(x + 2, 72, 8, 0, Math.PI * 2);
       ctx.fill();
 
-      // Catchlight sparkle
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
       ctx.arc(x - 2, 66, 5, 0, Math.PI * 2);
@@ -414,29 +479,26 @@ export class HenryCharacter {
     drawEye(75);
     drawEye(181);
 
-    // Cute eyebrows
     ctx.strokeStyle = '#5a3825';
     ctx.lineWidth = 7;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(56, 42);
-    ctx.quadraticCurveTo(76, 34, 96, 40);
+    ctx.quadraticCurveTo(76, 32, 96, 40);
     ctx.stroke();
 
     ctx.beginPath();
     ctx.moveTo(160, 40);
-    ctx.quadraticCurveTo(180, 34, 200, 42);
+    ctx.quadraticCurveTo(180, 32, 200, 42);
     ctx.stroke();
 
-    // Joyful grin / smile
     ctx.beginPath();
     ctx.strokeStyle = '#c2410c';
     ctx.lineWidth = 6;
-    ctx.arc(128, 120, 38, 0.2 * Math.PI, 0.8 * Math.PI);
+    ctx.arc(128, 118, 38, 0.2 * Math.PI, 0.8 * Math.PI);
     ctx.stroke();
 
-    // Rosy cheeks
-    ctx.fillStyle = 'rgba(244, 63, 94, 0.35)';
+    ctx.fillStyle = 'rgba(244, 63, 94, 0.4)';
     ctx.beginPath();
     ctx.arc(55, 115, 16, 0, Math.PI * 2);
     ctx.fill();
@@ -449,7 +511,6 @@ export class HenryCharacter {
     return texture;
   }
 
-  // Chalk puff texture
   private createChalkTexture(): THREE.CanvasTexture {
     const canvas = document.createElement('canvas');
     canvas.width = 64;
@@ -460,15 +521,12 @@ export class HenryCharacter {
     grad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
     grad.addColorStop(0.5, 'rgba(255, 255, 255, 0.4)');
     grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 64, 64);
 
-    const texture = new THREE.CanvasTexture(canvas);
-    return texture;
+    return new THREE.CanvasTexture(canvas);
   }
 
-  // Update outfit styles dynamically
   public applyOutfit(outfit: CharacterOutfit) {
     this.suitMat.color.set(outfit.suitColor);
     this.trimMat.color.set(outfit.trimColor);
@@ -477,22 +535,36 @@ export class HenryCharacter {
     this.headbandMat.color.set(outfit.headbandColor);
   }
 
-  public triggerAnimation(type: HenryAnimationState['type'], duration: number = 0.6) {
-    this.animState = {
-      type,
-      time: 0,
-      duration,
-    };
+  public setBoardActive(active: boolean) {
+    this.isBoardActive = active;
+    this.boardMesh.visible = active;
   }
 
-  public getAnimationType(): HenryAnimationState['type'] {
-    return this.animState.type;
+  public setSpringShoesActive(active: boolean) {
+    this.isSpringShoesActive = active;
+    this.springShoesLeft.visible = active;
+    this.springShoesRight.visible = active;
   }
 
-  // Animate Henry frame-by-frame
-  public update(dt: number, speedMultiplier: number = 1.0) {
-    this.animState.time += dt;
-    this.runCycleTime += dt * 11 * speedMultiplier;
+  public setFlyingActive(active: boolean) {
+    this.isFlyingActive = active;
+    this.gymRingsGroup.visible = active;
+  }
+
+  public triggerAnimation(anim: typeof this.currentAnim, duration: number = 0.6) {
+    this.currentAnim = anim;
+    this.animTimer = 0;
+    this.animDuration = duration;
+  }
+
+  public getAnimationType() {
+    return this.currentAnim;
+  }
+
+  // Update Henry's animations and contact shadow
+  public update(dt: number, speedRatio: number = 1.0, currentPosY: number = 0, groundY: number = 0) {
+    this.animTimer += dt;
+    this.runCycleTime += dt * 11 * speedRatio;
 
     // Reset base rotations
     this.group.rotation.set(0, 0, 0);
@@ -500,117 +572,135 @@ export class HenryCharacter {
     this.chest.rotation.set(0, 0, 0);
     this.head.rotation.set(0, 0, 0);
 
-    const animProgress = Math.min(1.0, this.animState.time / this.animState.duration);
+    // Update Contact Shadow scale & opacity based on jump height
+    const heightAboveGround = Math.max(0, currentPosY - groundY);
+    this.contactShadow.position.y = groundY - currentPosY + 0.02;
+    const shadowScale = Math.max(0.3, 1.2 - heightAboveGround * 0.15);
+    this.contactShadow.scale.set(shadowScale, shadowScale, 1);
+    (this.contactShadow.material as THREE.MeshBasicMaterial).opacity = Math.max(0.15, 0.7 - heightAboveGround * 0.12);
 
-    switch (this.animState.type) {
+    const progress = Math.min(1.0, this.animTimer / this.animDuration);
+
+    // If Riding Hoverboard, use cool surfer/acrobat stance
+    if (this.isBoardActive && this.currentAnim === 'RUN') {
+      this.hips.rotation.y = 0.45;
+      this.leftArm.rotation.set(0, 0, 1.4);
+      this.rightArm.rotation.set(0, 0, -1.4);
+      this.leftLeg.rotation.set(0, 0.2, 0.2);
+      this.rightLeg.rotation.set(0, -0.2, -0.2);
+      this.boardMesh.rotation.y = Math.sin(this.runCycleTime * 0.5) * 0.08;
+      this.boardMesh.position.y = 0.08 + Math.sin(this.runCycleTime * 2) * 0.03;
+      return;
+    }
+
+    // If Flying with Sky Rings
+    if (this.isFlyingActive) {
+      this.leftArm.rotation.set(0, 0, 2.7);
+      this.rightArm.rotation.set(0, 0, -2.7);
+      this.leftLeg.rotation.set(0.3, 0, 0.1);
+      this.rightLeg.rotation.set(0.3, 0, -0.1);
+      this.chest.rotation.x = -0.3;
+      return;
+    }
+
+    switch (this.currentAnim) {
       case 'RUN': {
-        // High energy kid runner cycle
         const cycle = this.runCycleTime;
         const swing = Math.sin(cycle);
 
-        // Legs alternate swing
-        this.leftLeg.rotation.x = swing * 0.9;
-        this.rightLeg.rotation.x = -swing * 0.9;
+        this.leftLeg.rotation.x = swing * 0.95;
+        this.rightLeg.rotation.x = -swing * 0.95;
+        this.leftLowerLeg.rotation.x = swing > 0 ? swing * 1.15 : 0.1;
+        this.rightLowerLeg.rotation.x = -swing > 0 ? -swing * 1.15 : 0.1;
 
-        // Knee bend when leg goes back
-        this.leftLowerLeg.rotation.x = swing > 0 ? swing * 1.1 : 0.1;
-        this.rightLowerLeg.rotation.x = -swing > 0 ? -swing * 1.1 : 0.1;
-
-        // Opposing arm swing with gymnastic fist
         this.leftArm.rotation.x = -swing * 0.85;
         this.rightArm.rotation.x = swing * 0.85;
         this.leftArm.rotation.z = 0.15;
         this.rightArm.rotation.z = -0.15;
 
-        // Bouncy torso
         this.hips.position.y = 0.72 + Math.abs(Math.sin(cycle)) * 0.08;
         this.chest.rotation.y = -swing * 0.15;
         break;
       }
 
       case 'JUMP': {
-        // Gymnastic Tuck / Pike Jump
-        // Arms raise high in proud gymnastic V-shape
-        this.leftArm.rotation.set(0, 0, 2.3);
-        this.rightArm.rotation.set(0, 0, -2.3);
-
-        // Legs tucked under
-        this.leftLeg.rotation.x = -1.2;
-        this.rightLeg.rotation.x = -1.2;
-        this.leftLowerLeg.rotation.x = 1.6;
-        this.rightLowerLeg.rotation.x = 1.6;
-
+        // High gymnastics tuck jump
+        this.leftArm.rotation.set(0, 0, 2.4);
+        this.rightArm.rotation.set(0, 0, -2.4);
+        this.leftLeg.rotation.x = -1.3;
+        this.rightLeg.rotation.x = -1.3;
+        this.leftLowerLeg.rotation.x = 1.7;
+        this.rightLowerLeg.rotation.x = 1.7;
         this.hips.position.y = 0.65;
         break;
       }
 
-      case 'BACKFLIP': {
-        // Full 360 gymnastics backflip!
-        const flipAngle = animProgress * Math.PI * 2;
+      case 'FLIP': {
+        // 360 Acrobatic backflip!
+        const flipAngle = progress * Math.PI * 2;
         this.group.rotation.x = -flipAngle;
 
-        // Tucked position during flip
-        const tuckFactor = Math.sin(animProgress * Math.PI);
-        this.leftLeg.rotation.x = -1.6 * tuckFactor;
-        this.rightLeg.rotation.x = -1.6 * tuckFactor;
-        this.leftLowerLeg.rotation.x = 2.0 * tuckFactor;
-        this.rightLowerLeg.rotation.x = 2.0 * tuckFactor;
-
-        this.leftArm.rotation.x = 2.2 * tuckFactor;
-        this.rightArm.rotation.x = 2.2 * tuckFactor;
-
-        // Emit chalk puff at start of backflip
-        this.puffChalk(dt);
+        const tuck = Math.sin(progress * Math.PI);
+        this.leftLeg.rotation.x = -1.8 * tuck;
+        this.rightLeg.rotation.x = -1.8 * tuck;
+        this.leftLowerLeg.rotation.x = 2.2 * tuck;
+        this.rightLowerLeg.rotation.x = 2.2 * tuck;
+        this.leftArm.rotation.x = 2.3 * tuck;
+        this.rightArm.rotation.x = 2.3 * tuck;
         break;
       }
 
       case 'CARTWHEEL': {
-        // Acrobatic side roll / Aerial cartwheel
-        const cartwheelAngle = animProgress * Math.PI * 2;
+        // Full sideways 360 aerial cartwheel
+        const cartwheelAngle = progress * Math.PI * 2;
         this.group.rotation.z = cartwheelAngle;
 
-        // Starfish / X shape
-        this.leftArm.rotation.set(0, 0, 2.4);
-        this.rightArm.rotation.set(0, 0, -2.4);
-        this.leftLeg.rotation.set(0, 0, 0.6);
-        this.rightLeg.rotation.set(0, 0, -0.6);
+        this.leftArm.rotation.set(0, 0, 2.5);
+        this.rightArm.rotation.set(0, 0, -2.5);
+        this.leftLeg.rotation.set(0, 0, 0.7);
+        this.rightLeg.rotation.set(0, 0, -0.7);
         this.leftLowerLeg.rotation.x = 0;
         this.rightLowerLeg.rotation.x = 0;
+        break;
+      }
 
-        this.puffChalk(dt);
+      case 'TWIST': {
+        // 360 Full body twist
+        const twistAngle = progress * Math.PI * 2;
+        this.group.rotation.y = twistAngle;
+        this.leftArm.rotation.set(0, 0, 2.8);
+        this.rightArm.rotation.set(0, 0, -2.8);
+        this.leftLeg.rotation.x = 0;
+        this.rightLeg.rotation.x = 0;
         break;
       }
 
       case 'SLIDE': {
-        // Gymnastics Forward Roll / Kip slide under obstacle
-        const rollAngle = animProgress * Math.PI * 2;
+        // Low gymnastics forward kip roll
+        const rollAngle = progress * Math.PI * 2;
         this.group.rotation.x = rollAngle;
-        this.hips.position.y = 0.35; // Lower to ground
+        this.hips.position.y = 0.35;
 
-        // Tightly tucked forward roll
-        this.leftLeg.rotation.x = -2.1;
-        this.rightLeg.rotation.x = -2.1;
-        this.leftLowerLeg.rotation.x = 2.0;
-        this.rightLowerLeg.rotation.x = 2.0;
-        this.leftArm.rotation.x = -1.8;
-        this.rightArm.rotation.x = -1.8;
+        this.leftLeg.rotation.x = -2.2;
+        this.rightLeg.rotation.x = -2.2;
+        this.leftLowerLeg.rotation.x = 2.2;
+        this.rightLowerLeg.rotation.x = 2.2;
+        this.leftArm.rotation.x = -1.9;
+        this.rightArm.rotation.x = -1.9;
         break;
       }
 
       case 'VAULT': {
-        // Vaulting over hurdle / table: hands plant forward, legs clear over
-        this.leftArm.rotation.set(-1.2, 0, 0.4);
-        this.rightArm.rotation.set(-1.2, 0, -0.4);
-        this.leftLeg.rotation.set(1.1, 0, 0.4);
-        this.rightLeg.rotation.set(1.1, 0, -0.4);
-        this.leftLowerLeg.rotation.x = 0.3;
-        this.rightLowerLeg.rotation.x = 0.3;
+        // Olympic Vault: hands plant forward, legs whip through
+        this.leftArm.rotation.set(-1.3, 0, 0.4);
+        this.rightArm.rotation.set(-1.3, 0, -0.4);
+        this.leftLeg.rotation.set(1.2, 0, 0.3);
+        this.rightLeg.rotation.set(1.2, 0, -0.3);
         this.chest.rotation.x = 0.4;
         break;
       }
 
       case 'BALANCE': {
-        // Olympic Balance Beam: arms wide horizontal, delicate tiptoe
         this.leftArm.rotation.set(0, 0, 1.57);
         this.rightArm.rotation.set(0, 0, -1.57);
         const tipCycle = this.runCycleTime * 1.4;
@@ -621,7 +711,6 @@ export class HenryCharacter {
       }
 
       case 'STUMBLE': {
-        // Cartoon stumble / bonk
         this.group.rotation.x = 0.45;
         this.leftArm.rotation.set(-1.5, 0, 0.8);
         this.rightArm.rotation.set(-1.5, 0, -0.8);
@@ -631,37 +720,20 @@ export class HenryCharacter {
       }
 
       case 'VICTORY': {
-        // Olympic "Stick the landing" pose!
-        this.leftArm.rotation.set(0, 0, 2.4);
-        this.rightArm.rotation.set(0, 0, -2.4);
+        this.leftArm.rotation.set(0, 0, 2.5);
+        this.rightArm.rotation.set(0, 0, -2.5);
         this.leftLeg.rotation.set(0, 0, 0.25);
         this.rightLeg.rotation.set(0, 0, -0.25);
-        this.chest.rotation.x = -0.15; // Proud puffed chest
-        this.head.rotation.x = -0.2; // Looking up at the crowd
+        this.chest.rotation.x = -0.15;
+        this.head.rotation.x = -0.2;
         break;
       }
     }
 
-    // Auto-return to RUN if timed animation finished
-    if (this.animState.type !== 'RUN' && this.animState.type !== 'STUMBLE' && this.animState.type !== 'VICTORY') {
-      if (this.animState.time >= this.animState.duration) {
+    if (this.currentAnim !== 'RUN' && this.currentAnim !== 'STUMBLE' && this.currentAnim !== 'VICTORY') {
+      if (this.animTimer >= this.animDuration) {
         this.triggerAnimation('RUN');
       }
     }
-  }
-
-  private puffChalk(dt: number) {
-    const pos = this.chalkPositions;
-    for (let i = 0; i < pos.length / 3; i++) {
-      pos[i * 3 + 1] += dt * 0.6;
-      pos[i * 3 + 0] += (Math.random() - 0.5) * dt * 0.4;
-      pos[i * 3 + 2] += (Math.random() - 0.5) * dt * 0.4;
-      if (pos[i * 3 + 1] > 1.4) {
-        pos[i * 3 + 0] = (Math.random() - 0.5) * 0.4;
-        pos[i * 3 + 1] = 0.4;
-        pos[i * 3 + 2] = (Math.random() - 0.5) * 0.4;
-      }
-    }
-    this.chalkGeo.attributes.position.needsUpdate = true;
   }
 }

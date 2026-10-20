@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect } from 'react';
-import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Zap } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Zap, Shield } from 'lucide-react';
 
 interface TouchControlsProps {
   onLeft: () => void;
@@ -12,6 +12,9 @@ interface TouchControlsProps {
   onJump: () => void;
   onSlide: () => void;
   onTrick: () => void;
+  onDeployBoard: () => void;
+  boardsAvailable: number;
+  isBoardActive: boolean;
 }
 
 export const TouchControls: React.FC<TouchControlsProps> = ({
@@ -20,16 +23,28 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
   onJump,
   onSlide,
   onTrick,
+  onDeployBoard,
+  boardsAvailable,
+  isBoardActive,
 }) => {
-  // Swipe detection
+  const lastTapRef = useRef<number>(0);
+
+  // Swipe + Double Tap detection
   useEffect(() => {
     let touchStartX = 0;
     let touchStartY = 0;
-    const minSwipeDist = 30;
+    const minSwipeDist = 28;
 
     const handleTouchStart = (e: TouchEvent) => {
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
+
+      // Double-tap detection anywhere on screen
+      const now = Date.now();
+      if (now - lastTapRef.current < 300) {
+        onDeployBoard();
+      }
+      lastTapRef.current = now;
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
@@ -40,13 +55,11 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
       const deltaY = touchEndY - touchStartY;
 
       if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        // Horizontal swipe
         if (Math.abs(deltaX) > minSwipeDist) {
           if (deltaX > 0) onRight();
           else onLeft();
         }
       } else {
-        // Vertical swipe
         if (Math.abs(deltaY) > minSwipeDist) {
           if (deltaY < 0) onJump();
           else onSlide();
@@ -61,30 +74,39 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [onLeft, onRight, onJump, onSlide]);
+  }, [onLeft, onRight, onJump, onSlide, onDeployBoard]);
 
   return (
-    <div className="absolute bottom-4 left-0 right-0 z-20 flex justify-between items-end px-4 md:px-8 pointer-events-none select-none">
-      {/* Left / Right D-Pad Buttons for Kids */}
+    <div className="absolute bottom-3 left-0 right-0 z-20 flex justify-between items-end px-3 md:px-8 pointer-events-none select-none">
+      {/* Left Lane D-Pad */}
       <div className="flex gap-2 pointer-events-auto">
         <button
           onClick={onLeft}
-          className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-slate-900/80 active:bg-blue-600/90 border border-slate-700/80 active:scale-90 transition flex items-center justify-center text-white shadow-xl backdrop-blur-sm"
+          className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-slate-900/85 active:bg-blue-600 border border-slate-700/80 active:scale-90 transition flex items-center justify-center text-white shadow-xl backdrop-blur-md"
           aria-label="Move Left"
         >
           <ArrowLeft className="w-7 h-7" />
         </button>
         <button
           onClick={onRight}
-          className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-slate-900/80 active:bg-blue-600/90 border border-slate-700/80 active:scale-90 transition flex items-center justify-center text-white shadow-xl backdrop-blur-sm"
+          className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-slate-900/85 active:bg-blue-600 border border-slate-700/80 active:scale-90 transition flex items-center justify-center text-white shadow-xl backdrop-blur-md"
           aria-label="Move Right"
         >
           <ArrowRight className="w-7 h-7" />
         </button>
       </div>
 
-      {/* Center Trick Button */}
-      <div className="pointer-events-auto flex flex-col items-center">
+      {/* Center Trick & Hoverboard Summon Button */}
+      <div className="pointer-events-auto flex flex-col items-center gap-1.5 pb-1">
+        {boardsAvailable > 0 && !isBoardActive && (
+          <button
+            onClick={onDeployBoard}
+            className="px-3.5 py-1.5 rounded-full bg-cyan-600 hover:bg-cyan-500 active:scale-95 transition flex items-center gap-1.5 text-white font-bold text-xs shadow-lg border border-cyan-300 backdrop-blur-md"
+          >
+            <Shield className="w-3.5 h-3.5 text-cyan-200" />
+            <span>BOARD ({boardsAvailable})</span>
+          </button>
+        )}
         <button
           onClick={onTrick}
           className="px-4 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-rose-500 active:scale-95 transition flex items-center gap-1.5 text-white font-black text-xs md:text-sm shadow-xl border-2 border-yellow-300"
@@ -98,7 +120,7 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
       <div className="flex gap-2 pointer-events-auto">
         <button
           onClick={onSlide}
-          className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-amber-900/80 active:bg-amber-600 border border-amber-600/50 active:scale-90 transition flex flex-col items-center justify-center text-white shadow-xl backdrop-blur-sm"
+          className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-amber-900/85 active:bg-amber-600 border border-amber-600/50 active:scale-90 transition flex flex-col items-center justify-center text-white shadow-xl backdrop-blur-md"
           aria-label="Slide or Forward Roll"
         >
           <ArrowDown className="w-6 h-6 text-amber-300" />
@@ -106,7 +128,7 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
         </button>
         <button
           onClick={onJump}
-          className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-emerald-900/80 active:bg-emerald-600 border border-emerald-600/50 active:scale-90 transition flex flex-col items-center justify-center text-white shadow-xl backdrop-blur-sm"
+          className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-emerald-900/85 active:bg-emerald-600 border border-emerald-600/50 active:scale-90 transition flex flex-col items-center justify-center text-white shadow-xl backdrop-blur-md"
           aria-label="Jump or Vault"
         >
           <ArrowUp className="w-6 h-6 text-emerald-300" />

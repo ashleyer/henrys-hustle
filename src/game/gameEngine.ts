@@ -13,7 +13,9 @@ import {
   PowerUpType,
   TrickFeedback,
   GameStats,
-  CharacterOutfit
+  CharacterOutfit,
+  ChalkBoardItem,
+  Mission
 } from '../types/game';
 import { HenryCharacter } from './character';
 import { TrackManager, LANE_POSITIONS } from './trackManager';
@@ -23,7 +25,8 @@ export const OUTFITS: CharacterOutfit[] = [
   {
     id: 'team_henry',
     name: 'Team Henry #7',
-    description: 'Official blue and gold gymnastic jersey. Sharp & ready!',
+    title: 'The Hometown Hero',
+    description: 'Official royal blue & gold gymnastics uniform. Speed, precision, and heart!',
     jerseyText: '7',
     suitColor: '#1d4ed8',
     trimColor: '#facc15',
@@ -37,7 +40,8 @@ export const OUTFITS: CharacterOutfit[] = [
   {
     id: 'gold_champion',
     name: 'Olympic Gold',
-    description: 'Shining gold & white leotard for a champion gymnast!',
+    title: 'World Champion',
+    description: 'Shining Olympic gold and pristine white. Fit for a Perfect 10 routine!',
     jerseyText: '7',
     suitColor: '#eab308',
     trimColor: '#ffffff',
@@ -51,7 +55,8 @@ export const OUTFITS: CharacterOutfit[] = [
   {
     id: 'neon_acrobat',
     name: 'Neon Acrobat',
-    description: 'Cyber electric teal with bright purple energy glow!',
+    title: 'Cyber Tumbler',
+    description: 'High-energy cyber teal and electric purple glow for night track hustling!',
     jerseyText: '7',
     suitColor: '#06b6d4',
     trimColor: '#a855f7',
@@ -65,7 +70,8 @@ export const OUTFITS: CharacterOutfit[] = [
   {
     id: 'super_gymnast',
     name: 'Super Gymnast',
-    description: 'Red & gold heroic leotard. Ready to fly high!',
+    title: 'Track Superhero',
+    description: 'Crimson and solar gold hero leotard. Ready to leap over entire metro trains!',
     jerseyText: '7',
     suitColor: '#dc2626',
     trimColor: '#fbbf24',
@@ -75,6 +81,79 @@ export const OUTFITS: CharacterOutfit[] = [
     headbandColor: '#dc2626',
     unlocked: false,
     cost: 200,
+  },
+];
+
+export const CHALK_BOARDS: ChalkBoardItem[] = [
+  {
+    id: 'blue_lightning',
+    name: 'Blue Lightning',
+    description: 'Standard issue high-speed gymnastics hoverboard with crash protection.',
+    boardColor: '#0284c7',
+    trailColor: '#38bdf8',
+    unlocked: true,
+    cost: 0,
+  },
+  {
+    id: 'solar_flare',
+    name: 'Solar Flare',
+    description: 'Blazing gold and orange board with sparkling chalk dust wake.',
+    boardColor: '#ea580c',
+    trailColor: '#facc15',
+    unlocked: false,
+    cost: 80,
+  },
+  {
+    id: 'neon_phantom',
+    name: 'Neon Phantom',
+    description: 'Cyberpunk emerald & violet hover deck that leaves neon light ribbons.',
+    boardColor: '#10b981',
+    trailColor: '#a855f7',
+    unlocked: false,
+    cost: 150,
+  },
+];
+
+export const INITIAL_MISSIONS: Mission[] = [
+  {
+    id: 'm_backflip',
+    title: 'Flip Master',
+    description: 'Perform 3 mid-air gymnastics backflips',
+    current: 0,
+    target: 3,
+    completed: false,
+    claimed: false,
+    rewardStars: 30,
+  },
+  {
+    id: 'm_vault',
+    title: 'Hurdle Hunter',
+    description: 'Vault over 2 low hurdles',
+    current: 0,
+    target: 2,
+    completed: false,
+    claimed: false,
+    rewardStars: 25,
+  },
+  {
+    id: 'm_score',
+    title: 'City Sprinter',
+    description: 'Score 1,500 points in one run',
+    current: 0,
+    target: 1500,
+    completed: false,
+    claimed: false,
+    rewardStars: 40,
+  },
+  {
+    id: 'm_stars',
+    title: 'Star Stash',
+    description: 'Collect 50 stars in a single run',
+    current: 0,
+    target: 50,
+    completed: false,
+    claimed: false,
+    rewardStars: 35,
   },
 ];
 
@@ -96,58 +175,95 @@ export class GameEngine {
   public isRolling: boolean = false;
   public rollTimer: number = 0;
   public groundHeight: number = 0;
-  public isAirborneTrickPossible: boolean = false;
+  public invulnerabilityTimer: number = 0;
 
-  // Game Speeds
-  public baseSpeed: number = 17.0;
-  public currentSpeed: number = 17.0;
-  public gravity: number = -38.0;
-  public normalJumpSpeed: number = 12.0;
+  // Speeds & physics constants
+  public baseSpeed: number = 18.0;
+  public currentSpeed: number = 18.0;
+  public gravity: number = -40.0;
+  public normalJumpSpeed: number = 13.0;
+
+  // Camera Shake
+  public cameraShakeTime: number = 0;
+  public cameraShakeMagnitude: number = 0;
 
   // Active Power-ups
   public activePowerUps: Map<PowerUpType, ActivePowerUp> = new Map();
 
-  // Stats
+  // Stats & Progress
   public stats: GameStats = {
     score: 0,
     distance: 0,
     starsCollected: 0,
+    starsInBank: 0,
     tricksPerformed: 0,
     perfectTens: 0,
+    vaultsPerformed: 0,
+    springboardLaunches: 0,
     highScore: 0,
     highestDistance: 0,
     totalRuns: 0,
+    boardsAvailable: 3,
+    activeBoardActive: false,
+    boardTimeRemaining: 0,
     collectedLetters: { H: false, E: false, N: false, R: false, Y: false },
   };
 
-  // Selected Outfit
+  public missions: Mission[] = [...INITIAL_MISSIONS];
   public currentOutfit: CharacterOutfit = OUTFITS[0];
+  public currentBoard: ChalkBoardItem = CHALK_BOARDS[0];
 
-  // Callbacks to UI
+  // Callbacks
   public onTrick?: (trick: TrickFeedback) => void;
   public onStatsChange?: (stats: GameStats) => void;
   public onPowerUpsChange?: (powerUps: ActivePowerUp[]) => void;
   public onStatusChange?: (status: GameStatus) => void;
+  public onMissionUpdate?: (missions: Mission[]) => void;
 
   constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
     this.scene = scene;
     this.camera = camera;
 
-    // Load saved high score from localStorage if available
-    try {
-      const savedHigh = localStorage.getItem('henrys_hustle_high_score');
-      if (savedHigh) this.stats.highScore = parseInt(savedHigh, 10) || 0;
-      const savedStars = localStorage.getItem('henrys_hustle_stars');
-      if (savedStars) this.stats.starsCollected = parseInt(savedStars, 10) || 0;
-    } catch {
-      // LocalStorage fallback
-    }
+    // Load saved data
+    this.loadSavedData();
 
     this.trackManager = new TrackManager(this.scene);
     this.henry = new HenryCharacter(this.currentOutfit);
     this.scene.add(this.henry.group);
 
     this.resetPlayerPosition();
+  }
+
+  private loadSavedData() {
+    try {
+      const savedHigh = localStorage.getItem('henrys_hustle_high_score');
+      if (savedHigh) this.stats.highScore = parseInt(savedHigh, 10) || 0;
+
+      const savedBank = localStorage.getItem('henrys_hustle_bank');
+      if (savedBank) this.stats.starsInBank = parseInt(savedBank, 10) || 0;
+
+      const savedBoards = localStorage.getItem('henrys_hustle_boards');
+      if (savedBoards) this.stats.boardsAvailable = parseInt(savedBoards, 10) || 3;
+
+      const savedOutfit = localStorage.getItem('henrys_hustle_outfit');
+      if (savedOutfit) {
+        const found = OUTFITS.find(o => o.id === savedOutfit);
+        if (found) this.currentOutfit = found;
+      }
+    } catch {
+      // LocalStorage fallback
+    }
+  }
+
+  public saveProgress() {
+    try {
+      localStorage.setItem('henrys_hustle_high_score', this.stats.highScore.toString());
+      localStorage.setItem('henrys_hustle_bank', this.stats.starsInBank.toString());
+      localStorage.setItem('henrys_hustle_boards', this.stats.boardsAvailable.toString());
+      localStorage.setItem('henrys_hustle_outfit', this.currentOutfit.id);
+    } catch {
+      // Ignore
+    }
   }
 
   private resetPlayerPosition() {
@@ -160,12 +276,23 @@ export class GameEngine {
     this.isGrounded = true;
     this.isRolling = false;
     this.groundHeight = 0;
+    this.invulnerabilityTimer = 0;
+    this.stats.activeBoardActive = false;
+    this.stats.boardTimeRemaining = 0;
+    this.henry.setBoardActive(false);
+    this.henry.setSpringShoesActive(false);
+    this.henry.setFlyingActive(false);
     this.henry.group.position.set(0, 0, 0);
   }
 
   public setOutfit(outfit: CharacterOutfit) {
     this.currentOutfit = outfit;
     this.henry.applyOutfit(outfit);
+    this.saveProgress();
+  }
+
+  public setBoard(board: ChalkBoardItem) {
+    this.currentBoard = board;
   }
 
   public startGame() {
@@ -173,8 +300,19 @@ export class GameEngine {
     this.currentSpeed = this.baseSpeed;
     this.stats.score = 0;
     this.stats.distance = 0;
+    this.stats.starsCollected = 0;
+    this.stats.tricksPerformed = 0;
+    this.stats.perfectTens = 0;
+    this.stats.vaultsPerformed = 0;
+    this.stats.springboardLaunches = 0;
     this.stats.collectedLetters = { H: false, E: false, N: false, R: false, Y: false };
     this.activePowerUps.clear();
+
+    // Reset missions progress for this run
+    this.missions.forEach(m => {
+      m.current = 0;
+      m.completed = false;
+    });
 
     this.trackManager.reset();
     this.resetPlayerPosition();
@@ -184,6 +322,7 @@ export class GameEngine {
     if (this.onStatusChange) this.onStatusChange(this.status);
     if (this.onStatsChange) this.onStatsChange({ ...this.stats });
     if (this.onPowerUpsChange) this.onPowerUpsChange([]);
+    if (this.onMissionUpdate) this.onMissionUpdate([...this.missions]);
   }
 
   public pauseGame() {
@@ -209,10 +348,11 @@ export class GameEngine {
     if (this.currentLane > -1) {
       this.currentLane = (this.currentLane - 1) as Lane;
       this.targetX = LANE_POSITIONS[this.currentLane];
+      soundManager.playLaneSwitch();
 
-      // Gymnastics side-step / cartwheel flourish if jumping
-      if (!this.isGrounded) {
-        this.performGymnasticsTrick('CARTWHEEL', 'EPIC TWIST!', 150);
+      // Mid-air Acrobatic Twist / Roundoff
+      if (!this.isGrounded && !this.activePowerUps.has('SKY_RINGS')) {
+        this.performGymnasticsTrick('AERIAL_CARTWHEEL', 'EPIC TWIST!', 160);
       }
     }
   }
@@ -222,9 +362,10 @@ export class GameEngine {
     if (this.currentLane < 1) {
       this.currentLane = (this.currentLane + 1) as Lane;
       this.targetX = LANE_POSITIONS[this.currentLane];
+      soundManager.playLaneSwitch();
 
-      if (!this.isGrounded) {
-        this.performGymnasticsTrick('CARTWHEEL', 'EPIC TWIST!', 150);
+      if (!this.isGrounded && !this.activePowerUps.has('SKY_RINGS')) {
+        this.performGymnasticsTrick('AERIAL_CARTWHEEL', 'EPIC TWIST!', 160);
       }
     }
   }
@@ -232,59 +373,98 @@ export class GameEngine {
   public jump() {
     if (this.status !== 'PLAYING') return;
 
-    // Check for nearby hurdle to trigger Olympic VAULT!
-    const nearHurdle = this.findNearbyHurdle(3.2);
+    // Check if near hurdle -> Olympic Vault
+    const nearHurdle = this.findNearbyHurdle(3.4);
     if (nearHurdle) {
       this.performVault(nearHurdle);
       return;
     }
 
     if (this.isGrounded) {
-      const jumpBoost = this.activePowerUps.has('CHALK_BOOST') ? 16.5 : this.normalJumpSpeed;
+      const hasSpringShoes = this.activePowerUps.has('SPRING_SHOES');
+      const hasChalk = this.activePowerUps.has('CHALK_BOOST');
+      const jumpBoost = hasSpringShoes ? 18.0 : hasChalk ? 15.5 : this.normalJumpSpeed;
+
       this.velocityY = jumpBoost;
       this.isGrounded = false;
       this.isRolling = false;
-      this.henry.triggerAnimation('JUMP', 0.8);
-      soundManager.playJump();
+
+      if (hasSpringShoes) {
+        soundManager.playSpringJump();
+        this.henry.triggerAnimation('FLIP', 0.9);
+      } else {
+        soundManager.playJump();
+        this.henry.triggerAnimation('JUMP', 0.8);
+      }
     } else {
-      // In air trick: Backflip!
-      this.performGymnasticsTrick('BACKFLIP', 'PERFECT 10!', 200);
+      // In-air trick: Triple Tuck Backflip
+      if (!this.activePowerUps.has('SKY_RINGS')) {
+        this.performGymnasticsTrick('TUCK_BACKFLIP', 'PERFECT 10!', 220);
+      }
     }
   }
 
+  // Slide or Mid-Air Fast Drop (Subway Surfers signature cancel mechanic)
   public slide() {
     if (this.status !== 'PLAYING') return;
 
     if (!this.isGrounded) {
-      // Fast drop down from mid-air!
-      this.velocityY = -24.0;
+      // Cancel jump instantly into fast dive roll!
+      this.velocityY = -28.0;
+      soundManager.playFastDive();
+    } else {
+      soundManager.playSlide();
     }
 
     this.isRolling = true;
-    this.rollTimer = 0.75;
-    this.henry.triggerAnimation('SLIDE', 0.75);
-    soundManager.playSlide();
+    this.rollTimer = 0.72;
+    this.henry.triggerAnimation('SLIDE', 0.72);
+  }
+
+  // Deploy Hoverboard (Chalk Board)
+  public deployChalkBoard(): boolean {
+    if (this.status !== 'PLAYING') return false;
+    if (this.stats.activeBoardActive) return false;
+    if (this.stats.boardsAvailable <= 0) return false;
+
+    this.stats.boardsAvailable--;
+    this.stats.activeBoardActive = true;
+    this.stats.boardTimeRemaining = 30.0;
+    this.henry.setBoardActive(true);
+    soundManager.playBoardDeploy();
+    this.saveProgress();
+
+    if (this.onStatsChange) this.onStatsChange({ ...this.stats });
+    return true;
   }
 
   public doTrickButton() {
     if (this.status !== 'PLAYING') return;
     if (!this.isGrounded) {
-      // Aerial combo
-      const tricks: Array<'BACKFLIP' | 'CARTWHEEL'> = ['BACKFLIP', 'CARTWHEEL'];
+      const tricks: Array<'TUCK_BACKFLIP' | 'AERIAL_CARTWHEEL' | 'FULL_TWIST'> = [
+        'TUCK_BACKFLIP',
+        'AERIAL_CARTWHEEL',
+        'FULL_TWIST',
+      ];
       const chosen = tricks[Math.floor(Math.random() * tricks.length)];
-      this.performGymnasticsTrick(chosen, 'STICK IT!', 250);
+      this.performGymnasticsTrick(chosen, 'STICK IT!', 260);
     } else {
-      // Ground acrobatic cartwheel
-      this.performGymnasticsTrick('CARTWHEEL', 'CHAMPION FLIP!', 120);
+      this.performGymnasticsTrick('AERIAL_CARTWHEEL', 'CHAMPION FLIP!', 140);
     }
   }
 
   private performGymnasticsTrick(
-    type: 'BACKFLIP' | 'CARTWHEEL',
+    type: 'TUCK_BACKFLIP' | 'AERIAL_CARTWHEEL' | 'FULL_TWIST',
     tag: TrickFeedback['tag'],
     points: number
   ) {
-    this.henry.triggerAnimation(type, 0.6);
+    const animMap = {
+      TUCK_BACKFLIP: 'FLIP' as const,
+      AERIAL_CARTWHEEL: 'CARTWHEEL' as const,
+      FULL_TWIST: 'TWIST' as const,
+    };
+
+    this.henry.triggerAnimation(animMap[type], 0.65);
     soundManager.playGymnasticsFlip();
 
     const mult = this.activePowerUps.has('MULTIPLIER') || this.activePowerUps.has('FEVER_MODE') ? 2 : 1;
@@ -292,15 +472,21 @@ export class GameEngine {
 
     this.stats.score += finalBonus;
     this.stats.tricksPerformed++;
+
+    if (type === 'TUCK_BACKFLIP') {
+      this.updateMissionProgress('m_backflip', 1);
+    }
+
     if (tag === 'PERFECT 10!') {
       this.stats.perfectTens++;
       soundManager.playPerfectTen();
+      this.shakeCamera(0.2, 0.15);
     }
 
     if (this.onTrick) {
       this.onTrick({
         id: `trick_${Date.now()}`,
-        name: type === 'BACKFLIP' ? 'Acrobatic Backflip' : 'Aerial Cartwheel',
+        name: type === 'TUCK_BACKFLIP' ? 'Triple Tuck Backflip' : type === 'AERIAL_CARTWHEEL' ? 'Aerial Cartwheel' : 'Full Layout Twist',
         bonus: finalBonus,
         timestamp: Date.now(),
         tag,
@@ -311,19 +497,22 @@ export class GameEngine {
   }
 
   private performVault(hurdle: ObstacleData) {
-    this.velocityY = 8.5;
+    this.velocityY = 9.2;
     this.isGrounded = false;
-    this.henry.triggerAnimation('VAULT', 0.55);
+    this.henry.triggerAnimation('VAULT', 0.58);
     soundManager.playVault();
 
-    const bonus = 180;
+    const bonus = 200;
     this.stats.score += bonus;
+    this.stats.vaultsPerformed++;
     this.stats.tricksPerformed++;
+
+    this.updateMissionProgress('m_vault', 1);
 
     if (this.onTrick) {
       this.onTrick({
         id: `vault_${Date.now()}`,
-        name: 'Olympic Vault Leap',
+        name: 'Olympic Vault Handspring',
         bonus,
         timestamp: Date.now(),
         tag: 'VAULT MASTER!',
@@ -341,21 +530,41 @@ export class GameEngine {
     }) || null;
   }
 
-  // --- MAIN TICK / UPDATE LOOP ---
+  private updateMissionProgress(missionId: string, delta: number) {
+    const mission = this.missions.find(m => m.id === missionId);
+    if (mission && !mission.completed) {
+      mission.current += delta;
+      if (mission.current >= mission.target) {
+        mission.current = mission.target;
+        mission.completed = true;
+        this.stats.starsInBank += mission.rewardStars;
+        soundManager.playLetter();
+        this.saveProgress();
+      }
+      if (this.onMissionUpdate) this.onMissionUpdate([...this.missions]);
+    }
+  }
+
+  public shakeCamera(magnitude: number, duration: number) {
+    this.cameraShakeMagnitude = magnitude;
+    this.cameraShakeTime = duration;
+  }
+
+  // --- MAIN UPDATE LOOP ---
 
   public update(dt: number) {
     if (this.status !== 'PLAYING') {
-      this.henry.update(dt, 0.5);
+      this.henry.update(dt, 0.5, 0, 0);
       return;
     }
 
-    // Cap delta time to prevent physics tunnel when tab un-focuses
     const clampedDt = Math.min(dt, 0.05);
 
-    // Speed progression based on distance
+    // Speed progression
     const isFever = this.activePowerUps.has('FEVER_MODE');
-    const speedBoost = isFever ? 1.4 : 1.0;
-    this.currentSpeed = (this.baseSpeed + Math.min(10.0, this.posZ * 0.004)) * speedBoost;
+    const isFlying = this.activePowerUps.has('SKY_RINGS');
+    const speedBoost = isFever ? 1.45 : isFlying ? 1.3 : 1.0;
+    this.currentSpeed = (this.baseSpeed + Math.min(12.0, this.posZ * 0.0035)) * speedBoost;
 
     // Advance forward
     const forwardStep = this.currentSpeed * clampedDt;
@@ -363,8 +572,10 @@ export class GameEngine {
     this.stats.distance = Math.floor(this.posZ);
     this.stats.score += Math.floor(forwardStep * (isFever ? 4 : 2));
 
+    this.updateMissionProgress('m_score', Math.floor(forwardStep * 2));
+
     // Smooth horizontal lane transition
-    this.posX = THREE.MathUtils.damp(this.posX, this.targetX, 16.0, clampedDt);
+    this.posX = THREE.MathUtils.damp(this.posX, this.targetX, 18.0, clampedDt);
 
     // Roll timer
     if (this.isRolling) {
@@ -374,42 +585,66 @@ export class GameEngine {
       }
     }
 
-    // Determine current surface ground height (tracks vs train top vs balance beam)
-    this.groundHeight = this.calculateSurfaceGroundHeight();
-
-    // Vertical Physics
-    if (!this.isGrounded || this.posY > this.groundHeight) {
-      this.velocityY += this.gravity * clampedDt;
-      this.posY += this.velocityY * clampedDt;
-
-      if (this.posY <= this.groundHeight) {
-        this.posY = this.groundHeight;
-        this.velocityY = 0;
-        this.isGrounded = true;
-
-        // Reset to run animation if finished jump
-        if (this.henry.getAnimationType() === 'JUMP') {
-          this.henry.triggerAnimation('RUN');
-        }
+    // Board timer
+    if (this.stats.activeBoardActive) {
+      this.stats.boardTimeRemaining -= clampedDt;
+      if (this.stats.boardTimeRemaining <= 0) {
+        this.stats.activeBoardActive = false;
+        this.stats.boardTimeRemaining = 0;
+        this.henry.setBoardActive(false);
       }
-    } else {
-      this.posY = this.groundHeight;
     }
 
-    // Update PowerUps timer
+    // Invulnerability timer
+    if (this.invulnerabilityTimer > 0) {
+      this.invulnerabilityTimer -= clampedDt;
+    }
+
+    // Calculate ground height
+    this.groundHeight = this.calculateSurfaceGroundHeight();
+
+    // Vertical Physics / Sky Flight
+    if (isFlying) {
+      // Sky Rings high flight mode (elevate to Y = 9.0 smoothly)
+      this.posY = THREE.MathUtils.damp(this.posY, 9.0, 4.0, clampedDt);
+      this.velocityY = 0;
+      this.isGrounded = false;
+      this.henry.setFlyingActive(true);
+    } else {
+      this.henry.setFlyingActive(false);
+
+      if (!this.isGrounded || this.posY > this.groundHeight) {
+        this.velocityY += this.gravity * clampedDt;
+        this.posY += this.velocityY * clampedDt;
+
+        if (this.posY <= this.groundHeight) {
+          this.posY = this.groundHeight;
+          this.velocityY = 0;
+          this.isGrounded = true;
+
+          if (this.henry.getAnimationType() === 'JUMP') {
+            this.henry.triggerAnimation('RUN');
+          }
+        }
+      } else {
+        this.posY = this.groundHeight;
+      }
+    }
+
+    // Update active powerups
     this.updatePowerUps(clampedDt);
 
-    // Check collisions with obstacles & collectibles
-    this.checkCollisions();
+    // Check collisions
+    this.checkCollisions(clampedDt);
 
-    // Update track chunk recycling
+    // Track chunk recycling
     this.trackManager.update(this.posZ, clampedDt);
 
-    // Apply Henry character position
+    // Update Henry
     this.henry.group.position.set(this.posX, this.posY, this.posZ);
-    this.henry.update(clampedDt, this.currentSpeed / this.baseSpeed);
+    this.henry.update(clampedDt, this.currentSpeed / this.baseSpeed, this.posY, this.groundHeight);
 
-    // Update Camera (Third-Person follow behind Henry with dynamic slight tilt)
+    // Update Camera
     this.updateCamera(clampedDt);
 
     if (this.onStatsChange) this.onStatsChange({ ...this.stats });
@@ -424,8 +659,7 @@ export class GameEngine {
         const inZ = this.posZ >= obs.z - halfDepth && this.posZ <= obs.z + halfDepth + 1.0;
 
         if (inZ) {
-          if (obs.type === 'TRAIN_STATIC') {
-            // Train rooftop height is ~2.4
+          if (obs.type === 'TRAIN_STATIC' || obs.type === 'TRAIN_MOVING') {
             if (this.posY >= 2.1) {
               surfaceHeight = 2.4;
             }
@@ -437,7 +671,6 @@ export class GameEngine {
               }
             }
           } else if (obs.type === 'RAMP') {
-            // Incline up to train top
             const progress = (this.posZ - (obs.z - halfDepth)) / obs.depth;
             const rampH = THREE.MathUtils.clamp(progress * 2.4, 0, 2.4);
             surfaceHeight = Math.max(surfaceHeight, rampH);
@@ -449,19 +682,17 @@ export class GameEngine {
     return surfaceHeight;
   }
 
-  private checkCollisions() {
+  private checkCollisions(dt: number) {
     const playerBox = {
       x: this.posX,
       y: this.posY + (this.isRolling ? 0.35 : 0.8),
       z: this.posZ,
-      radiusX: 0.45,
       height: this.isRolling ? 0.7 : 1.6,
-      depth: 0.6,
     };
 
-    // 1. Collectibles
+    // 1. Collectibles with Smooth Magnet Pull
     const magnetActive = this.activePowerUps.has('MAGNET') || this.activePowerUps.has('FEVER_MODE');
-    const magnetRadius = 6.0;
+    const magnetRadius = 7.5;
 
     this.trackManager.collectibles.forEach(col => {
       if (col.collected) return;
@@ -471,25 +702,23 @@ export class GameEngine {
       const distX = colX - playerBox.x;
       const distY = col.y - playerBox.y;
 
-      // Magnet pull effect
       if (magnetActive && distZ > -1.0 && distZ < magnetRadius) {
-        col.z -= 0.3;
-        // Collect if close enough
-        if (Math.abs(distZ) < 2.0) {
+        // Curve smoothly towards Henry's chest
+        col.z -= dt * 14;
+        if (Math.abs(distZ) < 2.2) {
           this.collectItem(col);
           return;
         }
       }
 
-      // Standard pickup overlap
-      if (Math.abs(distZ) < 1.1 && Math.abs(distX) < 1.0 && Math.abs(distY) < 1.5) {
+      // Normal overlap
+      if (Math.abs(distZ) < 1.15 && Math.abs(distX) < 1.0 && Math.abs(distY) < 1.6) {
         this.collectItem(col);
       }
     });
 
     // 2. Obstacles
-    if (this.activePowerUps.has('FEVER_MODE')) {
-      // Henry is invincible during Fever Mode!
+    if (this.activePowerUps.has('FEVER_MODE') || this.activePowerUps.has('SKY_RINGS') || this.invulnerabilityTimer > 0) {
       return;
     }
 
@@ -500,18 +729,17 @@ export class GameEngine {
       const obsMinZ = obs.z - halfDepth;
       const obsMaxZ = obs.z + halfDepth;
 
-      // Is player within Z range of this obstacle?
       if (playerBox.z >= obsMinZ - 0.4 && playerBox.z <= obsMaxZ + 0.2) {
-        // Evaluate obstacle type
         if (obs.type === 'SPRINGBOARD') {
-          // Launch Henry!
           if (this.posY <= 0.6) {
-            this.velocityY = 19.5;
+            this.velocityY = 20.0;
             this.isGrounded = false;
-            soundManager.playSpringboard();
-            this.henry.triggerAnimation('BACKFLIP', 0.9);
+            soundManager.playSpringJump();
+            this.henry.triggerAnimation('FLIP', 0.95);
+            this.stats.springboardLaunches++;
+            this.shakeCamera(0.25, 0.2);
 
-            const bonus = 200;
+            const bonus = 250;
             this.stats.score += bonus;
             if (this.onTrick) {
               this.onTrick({
@@ -519,28 +747,23 @@ export class GameEngine {
                 name: 'Springboard Super Launch!',
                 bonus,
                 timestamp: Date.now(),
-                tag: 'CHAMPION FLIP!',
+                tag: 'TSUKAHARA!',
               });
             }
           }
         } else if (obs.type === 'HURDLE_LOW') {
-          // Low Hurdle (height 1.0)
-          // If Henry is above hurdle or jumped, clear it!
           if (this.posY < 0.85) {
-            this.handleCrash();
+            this.handleCrashOrShield();
             return;
           }
         } else if (obs.type === 'BARRIER_HIGH') {
-          // High Barrier (gap underneath up to 1.1)
-          // If Henry is rolling / sliding, he passes! Otherwise crash!
           if (!this.isRolling || this.posY > 0.6) {
-            this.handleCrash();
+            this.handleCrashOrShield();
             return;
           }
-        } else if (obs.type === 'TRAIN_STATIC') {
-          // If Henry is on top of train (posY >= 2.3), he's safe!
+        } else if (obs.type === 'TRAIN_STATIC' || obs.type === 'TRAIN_MOVING') {
           if (this.posY < 2.2) {
-            this.handleCrash();
+            this.handleCrashOrShield();
             return;
           }
         }
@@ -548,54 +771,98 @@ export class GameEngine {
     }
   }
 
+  // Crash or Board Shield Protection
+  private handleCrashOrShield() {
+    if (this.stats.activeBoardActive) {
+      // Board saves Henry from crash!
+      this.stats.activeBoardActive = false;
+      this.stats.boardTimeRemaining = 0;
+      this.henry.setBoardActive(false);
+      this.invulnerabilityTimer = 2.2;
+      soundManager.playBoardCrashSave();
+      this.shakeCamera(0.35, 0.3);
+      return;
+    }
+
+    this.handleGameOver();
+  }
+
+  private handleGameOver() {
+    this.status = 'GAME_OVER';
+    soundManager.playCrash();
+    soundManager.stopRunnerMusic();
+    this.henry.triggerAnimation('STUMBLE', 1.5);
+    this.shakeCamera(0.4, 0.4);
+
+    // Bank stars & save high score
+    this.stats.starsInBank += this.stats.starsCollected;
+    if (this.stats.score > this.stats.highScore) {
+      this.stats.highScore = this.stats.score;
+    }
+    this.saveProgress();
+
+    if (this.onStatusChange) this.onStatusChange(this.status);
+    if (this.onStatsChange) this.onStatsChange({ ...this.stats });
+  }
+
   private collectItem(col: CollectibleData) {
     col.collected = true;
     this.trackManager.removeCollectibleMesh(col.id);
 
     if (col.type === 'STAR') {
-      soundManager.playCoin();
+      soundManager.playStarCollect();
       const mult = this.activePowerUps.has('MULTIPLIER') || this.activePowerUps.has('FEVER_MODE') ? 2 : 1;
       this.stats.starsCollected += mult;
       this.stats.score += 15 * mult;
+      this.updateMissionProgress('m_stars', mult);
     } else if (col.type === 'LETTER' && col.letter) {
       soundManager.playLetter();
       const letterKey = col.letter as 'H' | 'E' | 'N' | 'R' | 'Y';
       this.stats.collectedLetters[letterKey] = true;
-      this.stats.score += 150;
+      this.stats.score += 200;
 
-      // Check if all letters of HENRY are gathered!
       const allLetters = (['H', 'E', 'N', 'R', 'Y'] as const).every(l => this.stats.collectedLetters[l]);
       if (allLetters) {
         this.activateFeverMode();
       }
     } else if (col.type === 'POWERUP' && col.powerUpType) {
       soundManager.playPowerUp();
-      this.activatePowerUp(col.powerUpType, 10.0);
+      this.activatePowerUp(col.powerUpType, 11.0);
     }
 
     if (this.onStatsChange) this.onStatsChange({ ...this.stats });
   }
 
-  private activatePowerUp(type: PowerUpType, duration: number) {
+  public activatePowerUp(type: PowerUpType, duration: number) {
     this.activePowerUps.set(type, {
       type,
       remainingTime: duration,
       totalTime: duration,
     });
+
+    if (type === 'SPRING_SHOES') {
+      this.henry.setSpringShoesActive(true);
+    } else if (type === 'SKY_RINGS') {
+      soundManager.setSkyMode(true);
+    } else if (type === 'FEVER_MODE') {
+      soundManager.setFeverMode(true);
+    }
+
     this.notifyPowerUps();
   }
 
   private activateFeverMode() {
     this.stats.collectedLetters = { H: false, E: false, N: false, R: false, Y: false };
     soundManager.playPerfectTen();
-    this.activatePowerUp('FEVER_MODE', 9.0);
+    this.activatePowerUp('FEVER_MODE', 10.0);
     this.henry.triggerAnimation('VICTORY', 1.0);
+    this.shakeCamera(0.2, 0.3);
 
     if (this.onTrick) {
       this.onTrick({
         id: `fever_${Date.now()}`,
-        name: 'SUPER HENRY FEVER MODE!',
-        bonus: 500,
+        name: 'SUPER HENRY FEVER RUSH!',
+        bonus: 600,
         timestamp: Date.now(),
         tag: 'PERFECT 10!',
       });
@@ -608,6 +875,9 @@ export class GameEngine {
       pwr.remainingTime -= dt;
       if (pwr.remainingTime <= 0) {
         this.activePowerUps.delete(type);
+        if (type === 'SPRING_SHOES') this.henry.setSpringShoesActive(false);
+        if (type === 'SKY_RINGS') soundManager.setSkyMode(false);
+        if (type === 'FEVER_MODE') soundManager.setFeverMode(false);
         changed = true;
       }
     }
@@ -622,46 +892,28 @@ export class GameEngine {
     }
   }
 
-  private handleCrash() {
-    this.status = 'GAME_OVER';
-    soundManager.playCrash();
-    soundManager.stopRunnerMusic();
-    this.henry.triggerAnimation('STUMBLE', 1.5);
-
-    // Save high score & stars
-    if (this.stats.score > this.stats.highScore) {
-      this.stats.highScore = this.stats.score;
-      try {
-        localStorage.setItem('henrys_hustle_high_score', this.stats.highScore.toString());
-      } catch {
-        // Ignore
-      }
-    }
-
-    try {
-      localStorage.setItem('henrys_hustle_stars', this.stats.starsCollected.toString());
-    } catch {
-      // Ignore
-    }
-
-    if (this.onStatusChange) this.onStatusChange(this.status);
-    if (this.onStatsChange) this.onStatsChange({ ...this.stats });
-  }
-
   private updateCamera(dt: number) {
-    // Authentic Subway Surfers camera angle: behind and slightly above Henry
-    const targetCamX = this.posX * 0.45;
-    const targetCamY = Math.max(3.2, this.posY * 0.4 + 3.2);
+    const isFlying = this.activePowerUps.has('SKY_RINGS');
+    const targetCamX = this.posX * 0.42;
+    const targetCamY = isFlying ? 11.2 : Math.max(3.2, this.posY * 0.4 + 3.2);
     const targetCamZ = this.posZ - 5.8;
 
     this.camera.position.x = THREE.MathUtils.damp(this.camera.position.x, targetCamX, 12.0, dt);
     this.camera.position.y = THREE.MathUtils.damp(this.camera.position.y, targetCamY, 10.0, dt);
     this.camera.position.z = THREE.MathUtils.damp(this.camera.position.z, targetCamZ, 18.0, dt);
 
-    // Look slightly ahead of Henry's head
+    // Apply Camera Shake if active
+    if (this.cameraShakeTime > 0) {
+      this.cameraShakeTime -= dt;
+      const shakeX = (Math.random() - 0.5) * this.cameraShakeMagnitude;
+      const shakeY = (Math.random() - 0.5) * this.cameraShakeMagnitude;
+      this.camera.position.x += shakeX;
+      this.camera.position.y += shakeY;
+    }
+
     this.camera.lookAt(
       this.posX * 0.35,
-      this.posY + 1.2,
+      isFlying ? 9.4 : this.posY + 1.2,
       this.posZ + 6.0
     );
   }
