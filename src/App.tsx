@@ -23,6 +23,7 @@ import { TrophyRoomModal } from './components/TrophyRoomModal';
 import { ShopModal } from './components/ShopModal';
 import { MissionsModal } from './components/MissionsModal';
 import { TrickGuideModal } from './components/TrickGuideModal';
+import { AshleyFooter } from './components/AshleyFooter';
 import { soundManager } from './audio/soundManager';
 import { Play } from 'lucide-react';
 
@@ -222,6 +223,9 @@ export default function App() {
               >
                 QUIT TO MENU
               </button>
+            </div>
+            <div className="w-full pt-3 mt-3 border-t border-slate-800/80">
+              <AshleyFooter />
             </div>
           </div>
         </div>

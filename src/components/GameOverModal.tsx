@@ -7,6 +7,7 @@ import React, { useEffect } from 'react';
 import { GameStats } from '../types/game';
 import confetti from 'canvas-confetti';
 import { RotateCcw, Trophy, Star, Sparkles, Award, ShoppingBag } from 'lucide-react';
+import { AshleyFooter } from './AshleyFooter';
 
 interface GameOverModalProps {
   stats: GameStats;
@@ -126,6 +127,10 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
               MAIN MENU
             </button>
           </div>
+        </div>
+
+        <div className="w-full pt-3 mt-3 border-t border-slate-800/80">
+          <AshleyFooter />
         </div>
       </div>
     </div>

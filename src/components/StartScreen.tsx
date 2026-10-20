@@ -6,6 +6,7 @@
 import React from 'react';
 import { CharacterOutfit, GameStats } from '../types/game';
 import { Play, Trophy, Sparkles, Star, ShoppingBag, Award, BookOpen } from 'lucide-react';
+import { AshleyFooter } from './AshleyFooter';
 
 interface StartScreenProps {
   onStart: () => void;
@@ -119,14 +120,19 @@ export const StartScreen: React.FC<StartScreenProps> = ({
           <span>START HUSTLE!</span>
         </button>
 
-        <button
-          onClick={onOpenTrophyRoom}
-          className="text-xs text-slate-400 hover:text-white font-semibold flex items-center justify-center gap-1.5 py-1"
-        >
-          <Trophy className="w-3.5 h-3.5 text-yellow-400" />
-          <span>View Henry's Trophy Room</span>
-        </button>
+          <button
+            onClick={onOpenTrophyRoom}
+            className="text-xs text-slate-400 hover:text-white font-semibold flex items-center justify-center gap-1.5 py-1 mb-2"
+          >
+            <Trophy className="w-3.5 h-3.5 text-yellow-400" />
+            <span>View Henry's Trophy Room</span>
+          </button>
+
+          {/* Ashley's Footer */}
+          <div className="w-full pt-2 border-t border-slate-800/80">
+            <AshleyFooter />
+          </div>
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
