@@ -4,7 +4,7 @@
  */
 
 import * as THREE from 'three';
-import { ObstacleData, CollectibleData, Lane, PowerUpType } from '../types/game';
+import { ObstacleData, CollectibleData, Lane, PowerUpType, BostonMBTALine } from '../types/game';
 
 export const LANE_WIDTH = 2.2;
 export const LANE_POSITIONS: Record<Lane, number> = {
@@ -18,42 +18,49 @@ export class TrackManager {
   public obstacles: ObstacleData[] = [];
   public collectibles: CollectibleData[] = [];
 
-  // Meshes mapped by id
   private obstacleMeshes: Map<string, THREE.Group> = new Map();
   private collectibleMeshes: Map<string, THREE.Group> = new Map();
 
-  // Reusable Track Chunks
   private chunkGroups: THREE.Group[] = [];
   private readonly CHUNK_LENGTH = 60;
   private readonly CHUNK_COUNT = 6;
   private furthestChunkZ = 0;
 
-  // Shared Geometries & Materials
+  // Track Geometries & Materials
   private railGeo = new THREE.BoxGeometry(0.1, 0.1, this.CHUNK_LENGTH);
   private railMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.85, roughness: 0.15 });
   private tieGeo = new THREE.BoxGeometry(2.0, 0.08, 0.3);
   private tieMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9 });
   private groundMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8 });
 
-  // Train Materials
-  private trainBodyMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.5, roughness: 0.3 });
-  private trainStripeMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.6, roughness: 0.25 });
+  // MBTA Color Materials
+  private greenLineMat = new THREE.MeshStandardMaterial({ color: 0x15803d, metalness: 0.4, roughness: 0.35 });
+  private redLineMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, metalness: 0.4, roughness: 0.35 });
+  private orangeLineMat = new THREE.MeshStandardMaterial({ color: 0xea580c, metalness: 0.4, roughness: 0.35 });
+  private trainSilverMat = new THREE.MeshStandardMaterial({ color: 0xcfd8dc, metalness: 0.8, roughness: 0.2 });
   private trainWindowMat = new THREE.MeshStandardMaterial({ color: 0x020617, roughness: 0.1 });
-  private trainWheelMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.9, roughness: 0.3 });
 
-  // Gymnastics Prop Materials
+  // Gymnastics Props
   private hurdleMat = new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.3, roughness: 0.4 });
   private springboardMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, metalness: 0.1, roughness: 0.5 });
   private springboardSpringMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.95, roughness: 0.1 });
   private balanceBeamMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.85 });
 
-  // Collectible Materials
+  // Collectibles
   private starMat = new THREE.MeshStandardMaterial({
     color: 0xfacc15,
     metalness: 0.85,
     roughness: 0.15,
     emissive: 0xca8a04,
     emissiveIntensity: 0.4,
+  });
+
+  private medallionMat = new THREE.MeshStandardMaterial({
+    color: 0xb45309,
+    metalness: 0.9,
+    roughness: 0.2,
+    emissive: 0x92400e,
+    emissiveIntensity: 0.35,
   });
 
   constructor(scene: THREE.Scene) {
@@ -79,7 +86,7 @@ export class TrackManager {
     const chunk = new THREE.Group();
     chunk.position.z = zOffset;
 
-    // Ground platform
+    // Ground platform (Ballast gravel & rails)
     const ground = new THREE.Mesh(
       new THREE.BoxGeometry(LANE_WIDTH * 3 + 4.8, 0.4, this.CHUNK_LENGTH),
       this.groundMat
@@ -88,7 +95,7 @@ export class TrackManager {
     ground.receiveShadow = true;
     chunk.add(ground);
 
-    // Ballast track borders
+    // Ballast track curbs
     const curbMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 });
     const leftCurb = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.7, this.CHUNK_LENGTH), curbMat);
     leftCurb.position.set(-LANE_WIDTH * 1.5 - 1.4, 0.15, 0);
@@ -98,7 +105,7 @@ export class TrackManager {
     rightCurb.position.set(LANE_WIDTH * 1.5 + 1.4, 0.15, 0);
     chunk.add(rightCurb);
 
-    // 3 Subway Track Lanes
+    // 3 MBTA Subway Track Lanes
     const lanes: Lane[] = [-1, 0, 1];
     lanes.forEach(lane => {
       const x = LANE_POSITIONS[lane];
@@ -119,20 +126,21 @@ export class TrackManager {
       }
     });
 
-    // City & Stadium Flanks
-    this.addCityScenery(chunk);
+    // Boston Scenery: Red brick brownstones, Citgo sign, State House dome
+    this.addBostonScenery(chunk);
 
-    // Overhead Gantry with Signal Light
+    // Overhead MBTA Railway Gantry
     this.addOverheadGantry(chunk, 0);
 
-    // Sky Clouds overhead (for high jumping & sky flight!)
+    // Sky Clouds
     this.addSkyClouds(chunk);
 
     return chunk;
   }
 
-  private addCityScenery(chunk: THREE.Group) {
-    const buildingColors = [0x1e293b, 0x0f172a, 0x1e3a8a, 0x312e81, 0x1e1b4b];
+  private addBostonScenery(chunk: THREE.Group) {
+    // Boston Brick & Brownstone architecture
+    const brickColors = [0x7f1d1d, 0x991b1b, 0x581c87, 0x1e293b, 0x3f3f46];
     const flankDist = LANE_WIDTH * 2 + 4.2;
 
     [-1, 1].forEach(side => {
@@ -140,15 +148,15 @@ export class TrackManager {
         const height = 16 + Math.random() * 20;
         const width = 8 + Math.random() * 4;
         const depth = 13;
-        const color = buildingColors[Math.floor(Math.random() * buildingColors.length)];
-        const bMat = new THREE.MeshStandardMaterial({ color, roughness: 0.75 });
+        const color = brickColors[Math.floor(Math.random() * brickColors.length)];
+        const bMat = new THREE.MeshStandardMaterial({ color, roughness: 0.8 });
 
         const building = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), bMat);
         const zPos = -this.CHUNK_LENGTH / 2 + b * 15 + 7.5;
         building.position.set(side * (flankDist + width / 2), height / 2 - 0.2, zPos);
         chunk.add(building);
 
-        // Windows
+        // Windows with warm indoor light
         const winGeo = new THREE.PlaneGeometry(0.8, 1.2);
         const winMat = new THREE.MeshBasicMaterial({ color: Math.random() > 0.4 ? 0xfef08a : 0x38bdf8 });
         for (let wy = 3; wy < height - 2; wy += 3.8) {
@@ -164,29 +172,42 @@ export class TrackManager {
       }
     });
 
-    // Neon Gymnastics signs
+    // Famous Boston Sign (CITGO / MBTA "T" / BOSTON HUB)
     if (Math.random() > 0.35) {
       const signCanvas = document.createElement('canvas');
       signCanvas.width = 512;
-      signCanvas.height = 128;
+      signCanvas.height = 160;
       const sCtx = signCanvas.getContext('2d')!;
-      sCtx.fillStyle = '#0284c7';
-      sCtx.fillRect(0, 0, 512, 128);
-      sCtx.lineWidth = 10;
-      sCtx.strokeStyle = '#facc15';
-      sCtx.strokeRect(5, 5, 502, 118);
 
-      sCtx.fillStyle = '#fef08a';
-      sCtx.font = 'bold 44px sans-serif';
+      const signs = ['MBTA THE T', 'BOSTON HUB', 'FENWAY 02116', 'PARK STREET (1897)', 'KENMORE'];
+      const chosen = signs[Math.floor(Math.random() * signs.length)];
+
+      sCtx.fillStyle = '#15803d'; // Green Line green
+      sCtx.fillRect(0, 0, 512, 160);
+
+      // White T Logo circle
+      sCtx.fillStyle = '#ffffff';
+      sCtx.beginPath();
+      sCtx.arc(80, 80, 55, 0, Math.PI * 2);
+      sCtx.fill();
+
+      // Bold "T" in circle
+      sCtx.fillStyle = '#0f172a';
+      sCtx.font = '900 80px sans-serif';
       sCtx.textAlign = 'center';
-      const messages = ['HENRY GYMNASTICS', 'PERFECT 10 ARENA', 'GO CHAMPION #7!', 'STICK THE LANDING!'];
-      const msg = messages[Math.floor(Math.random() * messages.length)];
-      sCtx.fillText(msg, 256, 76);
+      sCtx.textBaseline = 'middle';
+      sCtx.fillText('T', 80, 84);
+
+      // Text
+      sCtx.fillStyle = '#ffffff';
+      sCtx.font = 'bold 44px sans-serif';
+      sCtx.textAlign = 'left';
+      sCtx.fillText(chosen, 160, 84);
 
       const signTex = new THREE.CanvasTexture(signCanvas);
       const signMat = new THREE.MeshBasicMaterial({ map: signTex });
-      const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(8.5, 2.2), signMat);
-      signMesh.position.set(-LANE_WIDTH * 2 - 1.8, 8.0, 0);
+      const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(8.5, 2.6), signMat);
+      signMesh.position.set(-LANE_WIDTH * 2 - 1.8, 8.2, 0);
       signMesh.rotation.y = 0.25;
       chunk.add(signMesh);
     }
@@ -212,6 +233,7 @@ export class TrackManager {
     crossBeam.position.set(0, 6.8, 0);
     gantry.add(crossBeam);
 
+    // Green Line signal light
     const signalLight = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), new THREE.MeshBasicMaterial({ color: 0x22c55e }));
     signalLight.position.set(0, 6.4, 0.25);
     gantry.add(signalLight);
@@ -243,7 +265,6 @@ export class TrackManager {
     }
   }
 
-  // Generate obstacles and items for a chunk
   private generateChunkFeatures(chunkStartZ: number) {
     const lanes: Lane[] = [-1, 0, 1];
     const featureCount = 3 + Math.floor(Math.random() * 2);
@@ -252,15 +273,16 @@ export class TrackManager {
       const z = chunkStartZ - this.CHUNK_LENGTH / 2 + (f + 0.5) * (this.CHUNK_LENGTH / featureCount);
       const patternRand = Math.random();
 
-      if (patternRand < 0.35) {
-        // --- Subway Train (Static or Slow Moving) ---
+      if (patternRand < 0.38) {
+        // --- Boston MBTA Train (Green Line, Red Line, or Orange Line) ---
         const trainLane = lanes[Math.floor(Math.random() * lanes.length)];
         const isMoving = Math.random() > 0.65;
         const hasRamp = !isMoving && Math.random() > 0.4;
+        const lines: BostonMBTALine[] = ['GREEN', 'RED', 'ORANGE'];
+        const chosenLine = lines[Math.floor(Math.random() * lines.length)];
 
-        this.spawnTrain(trainLane, z, hasRamp, isMoving);
+        this.spawnMBTATrain(trainLane, z, hasRamp, isMoving, chosenLine);
 
-        // Collectibles on remaining lanes
         const otherLanes = lanes.filter(l => l !== trainLane);
         const freeLane = otherLanes[Math.floor(Math.random() * otherLanes.length)];
         this.spawnStarLine(freeLane, z - 4, z + 4, 0.5);
@@ -268,18 +290,17 @@ export class TrackManager {
         if (hasRamp) {
           this.spawnStarLine(trainLane, z - 3, z + 4, 3.2);
         }
-      } else if (patternRand < 0.58) {
-        // --- Gymnastics Springboard + High Star Arc ---
+      } else if (patternRand < 0.6) {
+        // --- Competition Springboard + High Star Arc ---
         const boardLane = lanes[Math.floor(Math.random() * lanes.length)];
         this.spawnSpringboard(boardLane, z);
         this.spawnStarArc(boardLane, z + 2, z + 12, 1.0, 5.8);
 
-        // Special Item at the top of the flight
         if (Math.random() > 0.3) {
           this.spawnLetterOrPowerup(boardLane, z + 7, 5.5);
         }
       } else if (patternRand < 0.8) {
-        // --- Low Vault Hurdle & High Roll Bar ---
+        // --- Vault Hurdle & High Roll Bar ---
         const hurdleLane = lanes[Math.floor(Math.random() * lanes.length)];
         this.spawnHurdle(hurdleLane, z);
 
@@ -295,12 +316,12 @@ export class TrackManager {
         this.spawnBalanceBeam(beamLane, z);
         this.spawnStarLine(beamLane, z - 4, z + 4, 1.8);
 
-        if (Math.random() > 0.4) {
-          this.spawnLetterOrPowerup(beamLane, z, 2.2);
+        // Freedom Trail Medallion on balance beam!
+        if (Math.random() > 0.3) {
+          this.spawnFreedomMedallion(beamLane, z, 2.2);
         }
       }
 
-      // Also generate high sky star lines for Sky Rings mode
       if (Math.random() > 0.5) {
         const skyLane = lanes[Math.floor(Math.random() * lanes.length)];
         this.spawnStarLine(skyLane, z - 3, z + 3, 8.5);
@@ -308,11 +329,12 @@ export class TrackManager {
     }
   }
 
-  // --- SPAWN IMPLEMENTATIONS ---
+  // --- SPAWN MBTA TRAIN ---
+  private spawnMBTATrain(lane: Lane, z: number, hasRamp: boolean, isMoving: boolean, line: BostonMBTALine) {
+    const id = `mbta_${line}_${lane}_${Math.floor(z)}`;
+    const lineMat = line === 'GREEN' ? this.greenLineMat : line === 'RED' ? this.redLineMat : this.orangeLineMat;
 
-  private spawnTrain(lane: Lane, z: number, hasRamp: boolean, isMoving: boolean) {
-    const id = `train_${lane}_${Math.floor(z)}`;
-    const trainData: ObstacleData = {
+    this.obstacles.push({
       id,
       type: isMoving ? 'TRAIN_MOVING' : 'TRAIN_STATIC',
       lane,
@@ -320,26 +342,26 @@ export class TrackManager {
       width: 1.8,
       height: 2.5,
       depth: 9.5,
-      speedZ: isMoving ? -4.5 : 0, // oncoming train
-    };
-    this.obstacles.push(trainData);
+      speedZ: isMoving ? -4.5 : 0,
+      lineColor: line,
+    });
 
     const group = new THREE.Group();
     group.position.set(LANE_POSITIONS[lane], 0, z);
 
-    // Train Body
-    const body = new THREE.Mesh(new THREE.BoxGeometry(1.9, 2.3, 9.5), this.trainBodyMat);
+    // MBTA Aluminum Silver Body
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.9, 2.3, 9.5), this.trainSilverMat);
     body.position.y = 1.25;
     body.castShadow = true;
     body.receiveShadow = true;
     group.add(body);
 
-    // Stripe
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.94, 0.35, 9.5), this.trainStripeMat);
+    // MBTA Color Line Stripe (Green / Red / Orange)
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.94, 0.45, 9.5), lineMat);
     stripe.position.y = 1.1;
     group.add(stripe);
 
-    // Vents
+    // Roof Vents
     for (let ac = -3.2; ac <= 3.2; ac += 3.2) {
       const acUnit = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.25, 1.8), this.tieMat);
       acUnit.position.set(0, 2.5, ac);
@@ -362,6 +384,12 @@ export class TrackManager {
     windshield.rotation.y = Math.PI;
     group.add(windshield);
 
+    // Front MBTA "T" badge
+    const badge = new THREE.Mesh(new THREE.CircleGeometry(0.24, 16), lineMat);
+    badge.position.set(0, 1.0, -4.76);
+    badge.rotation.y = Math.PI;
+    group.add(badge);
+
     // Headlights
     [-0.55, 0.55].forEach(lx => {
       const lightMesh = new THREE.Mesh(
@@ -372,10 +400,9 @@ export class TrackManager {
       group.add(lightMesh);
     });
 
-    // Ramp if enabled
     if (hasRamp) {
       const rampGeo = new THREE.BoxGeometry(1.8, 0.15, 4.2);
-      const rampMesh = new THREE.Mesh(rampGeo, this.trainStripeMat);
+      const rampMesh = new THREE.Mesh(rampGeo, lineMat);
       rampMesh.position.set(0, 1.2, -6.5);
       rampMesh.rotation.x = -0.55;
       rampMesh.castShadow = true;
@@ -454,7 +481,7 @@ export class TrackManager {
 
     const signBar = new THREE.Mesh(
       new THREE.BoxGeometry(1.9, 1.0, 0.18),
-      new THREE.MeshStandardMaterial({ color: 0xe11d48, metalness: 0.3, roughness: 0.5 })
+      new THREE.MeshStandardMaterial({ color: 0x15803d, metalness: 0.3, roughness: 0.5 })
     );
     signBar.position.y = 1.85;
     signBar.castShadow = true;
@@ -614,6 +641,29 @@ export class TrackManager {
     return new THREE.Mesh(geo, this.starMat);
   }
 
+  // Boston Freedom Trail Medallion
+  private spawnFreedomMedallion(lane: Lane, z: number, y: number) {
+    const id = `medallion_${lane}_${Math.floor(z)}`;
+    this.collectibles.push({
+      id,
+      type: 'BOSTON_MEDALLION',
+      lane,
+      z,
+      y,
+    });
+
+    const group = new THREE.Group();
+    group.position.set(LANE_POSITIONS[lane], y, z);
+
+    const coinGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.12, 16);
+    coinGeo.rotateX(Math.PI / 2);
+    const coin = new THREE.Mesh(coinGeo, this.medallionMat);
+    group.add(coin);
+
+    this.scene.add(group);
+    this.collectibleMeshes.set(id, group);
+  }
+
   private spawnLetterOrPowerup(lane: Lane, z: number, y: number) {
     const letters: Array<'H' | 'E' | 'N' | 'R' | 'Y'> = ['H', 'E', 'N', 'R', 'Y'];
     const powerUps: PowerUpType[] = ['MAGNET', 'SPRING_SHOES', 'SKY_RINGS', 'MULTIPLIER', 'CHALK_BOOST'];
@@ -638,8 +688,8 @@ export class TrackManager {
       const badgeGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.15, 16);
       badgeGeo.rotateX(Math.PI / 2);
       const badgeMat = new THREE.MeshStandardMaterial({
-        color: 0x3b82f6,
-        emissive: 0x1d4ed8,
+        color: 0x15803d, // Boston Green Line badge
+        emissive: 0x166534,
         emissiveIntensity: 0.5,
       });
       group.add(new THREE.Mesh(badgeGeo, badgeMat));
@@ -675,7 +725,6 @@ export class TrackManager {
       const group = new THREE.Group();
       group.position.set(LANE_POSITIONS[lane], y, z);
 
-      // Icon colors based on powerup
       const colors: Record<PowerUpType, number> = {
         MAGNET: 0xef4444,
         SPRING_SHOES: 0xf59e0b,
@@ -701,14 +750,11 @@ export class TrackManager {
     }
   }
 
-  // Update dynamic elements (moving trains, rotating collectibles)
   public update(playerZ: number, dt: number) {
-    // 1. Rotate collectibles
     this.collectibleMeshes.forEach(mesh => {
       mesh.rotation.y += dt * 3.5;
     });
 
-    // 2. Advance moving trains
     this.obstacles.forEach(obs => {
       if (obs.type === 'TRAIN_MOVING' && obs.speedZ) {
         obs.z += obs.speedZ * dt;
@@ -719,7 +765,6 @@ export class TrackManager {
       }
     });
 
-    // 3. Recycle chunks
     const firstChunk = this.chunkGroups[0];
     if (playerZ - firstChunk.position.z > this.CHUNK_LENGTH * 1.5) {
       const recycledChunk = this.chunkGroups.shift()!;

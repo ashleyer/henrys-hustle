@@ -101,7 +101,12 @@ export const ShopModal: React.FC<ShopModalProps> = ({
                         <div className="text-[11px] text-amber-400 font-semibold">{outfit.title}</div>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-300 mb-3">{outfit.description}</p>
+                    <p className="text-xs text-slate-300 mb-1.5">{outfit.description}</p>
+                    {outfit.historyNote && (
+                      <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-lg p-1.5 text-[10px] text-emerald-300 font-medium mb-2.5">
+                        📜 {outfit.historyNote}
+                      </div>
+                    )}
                     <button
                       onClick={() => {
                         if (isUnlocked) {

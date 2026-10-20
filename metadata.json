@@ -1,6 +1,6 @@
 {
-  "name": "Henry's Hustle",
-  "description": "An action-packed 3D Subway Surfers style runner customized for 7-year-old Henry, packed with awesome gymnastics flips, vaults, cartwheels, and city rooftop obstacles!",
+  "name": "Henry's Hub Hustle",
+  "description": "An action-packed 3D Subway Surfers style runner through Boston's historic MBTA subway system, packed with Olympic gymnastics flips, vaults, custom character creator, and educational Hub history for kids!",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

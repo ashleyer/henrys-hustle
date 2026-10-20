@@ -15,102 +15,140 @@ import {
   GameStats,
   CharacterOutfit,
   ChalkBoardItem,
-  Mission
+  Mission,
+  CustomCharacterProfile,
+  EducationalTrivia
 } from '../types/game';
 import { HenryCharacter } from './character';
 import { TrackManager, LANE_POSITIONS } from './trackManager';
 import { soundManager } from '../audio/soundManager';
+import { MBTA_STATIONS, EDUCATIONAL_TRIVIA, MBTAStation } from '../data/educationalContent';
 
 export const OUTFITS: CharacterOutfit[] = [
   {
+    id: 'boston_t_conductor',
+    name: 'Boston T Conductor',
+    title: 'MBTA Track Champion',
+    description: 'Iconic MBTA Forest Green & Silver uniform with Green, Red & Orange line trims!',
+    historyNote: 'Celebrates America’s very first subway system, built in Boston in 1897!',
+    jerseyText: '7',
+    suitColor: '#15803d',
+    trimColor: '#facc15',
+    shoesColor: '#ef4444',
+    headbandColor: '#15803d',
+    unlocked: true,
+    cost: 0,
+  },
+  {
     id: 'team_henry',
     name: 'Team Henry #7',
-    title: 'The Hometown Hero',
-    description: 'Official royal blue & gold gymnastics uniform. Speed, precision, and heart!',
+    title: 'The Hometown Gymnast',
+    description: 'Official royal blue & gold gymnastics uniform. Speed, precision, and championship heart!',
     jerseyText: '7',
     suitColor: '#1d4ed8',
     trimColor: '#facc15',
-    hairColor: '#7c4722',
-    skinColor: '#ffdfc4',
     shoesColor: '#ef4444',
     headbandColor: '#f59e0b',
     unlocked: true,
     cost: 0,
   },
   {
-    id: 'gold_champion',
-    name: 'Olympic Gold',
+    id: 'fenway_monster',
+    name: 'Fenway Green Monster',
+    title: 'Boston Ballpark Acrobat',
+    description: 'Vibrant green and crisp white, inspired by Fenway Park’s legendary left-field wall!',
+    historyNote: 'Fenway Park opened in 1912 and is the oldest active ballpark in Major League Baseball.',
+    jerseyText: '7',
+    suitColor: '#166534',
+    trimColor: '#ffffff',
+    shoesColor: '#ef4444',
+    headbandColor: '#166534',
+    unlocked: false,
+    cost: 50,
+  },
+  {
+    id: 'olympic_gold',
+    name: 'Olympic Gold Champion',
     title: 'World Champion',
-    description: 'Shining Olympic gold and pristine white. Fit for a Perfect 10 routine!',
+    description: 'Shining Olympic gold and pristine white. Fit for a Perfect 10.0 gymnastics routine!',
     jerseyText: '7',
     suitColor: '#eab308',
     trimColor: '#ffffff',
-    hairColor: '#451a03',
-    skinColor: '#ffdfc4',
     shoesColor: '#fbbf24',
     headbandColor: '#ffffff',
     unlocked: false,
-    cost: 60,
+    cost: 80,
+  },
+  {
+    id: 'freedom_trail',
+    name: 'Freedom Trail Pioneer',
+    title: 'Revolutionary Tumbler',
+    description: 'Colonial navy, brass gold, and red accents honoring Paul Revere and the Boston patriots.',
+    historyNote: 'The 2.5-mile Freedom Trail links 16 historic Boston sites from Boston Common to Bunker Hill.',
+    jerseyText: '7',
+    suitColor: '#1e3a8a',
+    trimColor: '#dc2626',
+    shoesColor: '#f59e0b',
+    headbandColor: '#1e3a8a',
+    unlocked: false,
+    cost: 110,
+  },
+  {
+    id: 'back_bay_varsity',
+    name: 'Back Bay Sprinter 02116',
+    title: 'Copley Square Marathoner',
+    description: 'Deep navy and crimson collegiate leotard celebrating the famous Boston Marathon finish line!',
+    historyNote: 'The Boston Marathon has finished on Boylston Street in Copley Square (02116) since 1986!',
+    jerseyText: '7',
+    suitColor: '#312e81',
+    trimColor: '#e11d48',
+    shoesColor: '#38bdf8',
+    headbandColor: '#312e81',
+    unlocked: false,
+    cost: 140,
   },
   {
     id: 'neon_acrobat',
     name: 'Neon Acrobat',
     title: 'Cyber Tumbler',
-    description: 'High-energy cyber teal and electric purple glow for night track hustling!',
+    description: 'High-energy cyber electric teal and violet glow for high-speed night track hustling!',
     jerseyText: '7',
     suitColor: '#06b6d4',
     trimColor: '#a855f7',
-    hairColor: '#172554',
-    skinColor: '#ffdfc4',
     shoesColor: '#ec4899',
     headbandColor: '#06b6d4',
     unlocked: false,
-    cost: 120,
-  },
-  {
-    id: 'super_gymnast',
-    name: 'Super Gymnast',
-    title: 'Track Superhero',
-    description: 'Crimson and solar gold hero leotard. Ready to leap over entire metro trains!',
-    jerseyText: '7',
-    suitColor: '#dc2626',
-    trimColor: '#fbbf24',
-    hairColor: '#18181b',
-    skinColor: '#ffdfc4',
-    shoesColor: '#fbbf24',
-    headbandColor: '#dc2626',
-    unlocked: false,
-    cost: 200,
+    cost: 175,
   },
 ];
 
 export const CHALK_BOARDS: ChalkBoardItem[] = [
   {
-    id: 'blue_lightning',
-    name: 'Blue Lightning',
-    description: 'Standard issue high-speed gymnastics hoverboard with crash protection.',
-    boardColor: '#0284c7',
-    trailColor: '#38bdf8',
+    id: 'green_line_express',
+    name: 'Green Line Express',
+    description: 'Forest green MBTA hover-deck with emergency crash protection.',
+    boardColor: '#15803d',
+    trailColor: '#86efac',
     unlocked: true,
     cost: 0,
   },
   {
-    id: 'solar_flare',
-    name: 'Solar Flare',
-    description: 'Blazing gold and orange board with sparkling chalk dust wake.',
-    boardColor: '#ea580c',
-    trailColor: '#facc15',
+    id: 'red_line_rocket',
+    name: 'Red Line Rocket',
+    description: 'Blazing crimson hover-deck inspired by the high-speed Red Line.',
+    boardColor: '#dc2626',
+    trailColor: '#fca5a5',
     unlocked: false,
-    cost: 80,
+    cost: 60,
   },
   {
-    id: 'neon_phantom',
-    name: 'Neon Phantom',
-    description: 'Cyberpunk emerald & violet hover deck that leaves neon light ribbons.',
-    boardColor: '#10b981',
-    trailColor: '#a855f7',
+    id: 'solar_flare',
+    name: 'Golden State House',
+    description: 'Gleaming 24K gold board modeled after the Massachusetts State House dome.',
+    boardColor: '#f59e0b',
+    trailColor: '#fef08a',
     unlocked: false,
-    cost: 150,
+    cost: 120,
   },
 ];
 
@@ -136,14 +174,14 @@ export const INITIAL_MISSIONS: Mission[] = [
     rewardStars: 25,
   },
   {
-    id: 'm_score',
-    title: 'City Sprinter',
-    description: 'Score 1,500 points in one run',
+    id: 'm_station',
+    title: 'Back Bay Runner',
+    description: 'Reach Copley Square Station (750m)',
     current: 0,
-    target: 1500,
+    target: 750,
     completed: false,
     claimed: false,
-    rewardStars: 40,
+    rewardStars: 50,
   },
   {
     id: 'm_stars',
@@ -164,7 +202,7 @@ export class GameEngine {
   public scene: THREE.Scene;
   public camera: THREE.PerspectiveCamera;
 
-  // Player physics state
+  // Player physics
   public currentLane: Lane = 0;
   public targetX: number = 0;
   public posX: number = 0;
@@ -177,7 +215,7 @@ export class GameEngine {
   public groundHeight: number = 0;
   public invulnerabilityTimer: number = 0;
 
-  // Speeds & physics constants
+  // Speeds
   public baseSpeed: number = 18.0;
   public currentSpeed: number = 18.0;
   public gravity: number = -40.0;
@@ -187,13 +225,14 @@ export class GameEngine {
   public cameraShakeTime: number = 0;
   public cameraShakeMagnitude: number = 0;
 
-  // Active Power-ups
+  // Power-ups
   public activePowerUps: Map<PowerUpType, ActivePowerUp> = new Map();
 
-  // Stats & Progress
+  // Stats
   public stats: GameStats = {
     score: 0,
     distance: 0,
+    currentStation: 'Park Street Station (1897)',
     starsCollected: 0,
     starsInBank: 0,
     tricksPerformed: 0,
@@ -212,6 +251,20 @@ export class GameEngine {
   public missions: Mission[] = [...INITIAL_MISSIONS];
   public currentOutfit: CharacterOutfit = OUTFITS[0];
   public currentBoard: ChalkBoardItem = CHALK_BOARDS[0];
+  public customProfile: CustomCharacterProfile = {
+    name: 'Henry',
+    hairStyle: 'SPIKY',
+    hairColor: '#7c4722',
+    skinTone: '#ffdfc4',
+    eyeColor: '#0284c7',
+    headbandColor: '#15803d',
+    outfitId: 'boston_t_conductor',
+    shoesColor: '#ef4444',
+    wristGripColor: '#ffffff',
+  };
+
+  // Trivia tracker
+  private triggeredTriviaIds: Set<string> = new Set();
 
   // Callbacks
   public onTrick?: (trick: TrickFeedback) => void;
@@ -219,16 +272,17 @@ export class GameEngine {
   public onPowerUpsChange?: (powerUps: ActivePowerUp[]) => void;
   public onStatusChange?: (status: GameStatus) => void;
   public onMissionUpdate?: (missions: Mission[]) => void;
+  public onTriviaUnlocked?: (trivia: EducationalTrivia) => void;
+  public onStationReached?: (station: MBTAStation) => void;
 
   constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
     this.scene = scene;
     this.camera = camera;
 
-    // Load saved data
     this.loadSavedData();
 
     this.trackManager = new TrackManager(this.scene);
-    this.henry = new HenryCharacter(this.currentOutfit);
+    this.henry = new HenryCharacter(this.currentOutfit, this.customProfile);
     this.scene.add(this.henry.group);
 
     this.resetPlayerPosition();
@@ -236,16 +290,21 @@ export class GameEngine {
 
   private loadSavedData() {
     try {
-      const savedHigh = localStorage.getItem('henrys_hustle_high_score');
+      const savedHigh = localStorage.getItem('hub_hustle_high_score');
       if (savedHigh) this.stats.highScore = parseInt(savedHigh, 10) || 0;
 
-      const savedBank = localStorage.getItem('henrys_hustle_bank');
+      const savedBank = localStorage.getItem('hub_hustle_bank');
       if (savedBank) this.stats.starsInBank = parseInt(savedBank, 10) || 0;
 
-      const savedBoards = localStorage.getItem('henrys_hustle_boards');
+      const savedBoards = localStorage.getItem('hub_hustle_boards');
       if (savedBoards) this.stats.boardsAvailable = parseInt(savedBoards, 10) || 3;
 
-      const savedOutfit = localStorage.getItem('henrys_hustle_outfit');
+      const savedProfile = localStorage.getItem('hub_hustle_profile');
+      if (savedProfile) {
+        this.customProfile = JSON.parse(savedProfile);
+      }
+
+      const savedOutfit = localStorage.getItem('hub_hustle_outfit');
       if (savedOutfit) {
         const found = OUTFITS.find(o => o.id === savedOutfit);
         if (found) this.currentOutfit = found;
@@ -257,10 +316,11 @@ export class GameEngine {
 
   public saveProgress() {
     try {
-      localStorage.setItem('henrys_hustle_high_score', this.stats.highScore.toString());
-      localStorage.setItem('henrys_hustle_bank', this.stats.starsInBank.toString());
-      localStorage.setItem('henrys_hustle_boards', this.stats.boardsAvailable.toString());
-      localStorage.setItem('henrys_hustle_outfit', this.currentOutfit.id);
+      localStorage.setItem('hub_hustle_high_score', this.stats.highScore.toString());
+      localStorage.setItem('hub_hustle_bank', this.stats.starsInBank.toString());
+      localStorage.setItem('hub_hustle_boards', this.stats.boardsAvailable.toString());
+      localStorage.setItem('hub_hustle_profile', JSON.stringify(this.customProfile));
+      localStorage.setItem('hub_hustle_outfit', this.currentOutfit.id);
     } catch {
       // Ignore
     }
@@ -285,8 +345,21 @@ export class GameEngine {
     this.henry.group.position.set(0, 0, 0);
   }
 
+  public setCustomProfile(profile: CustomCharacterProfile) {
+    this.customProfile = { ...profile };
+    this.henry.applyCustomProfile(profile);
+
+    const outfit = OUTFITS.find(o => o.id === profile.outfitId);
+    if (outfit) {
+      this.currentOutfit = outfit;
+      this.henry.applyOutfit(outfit);
+    }
+    this.saveProgress();
+  }
+
   public setOutfit(outfit: CharacterOutfit) {
     this.currentOutfit = outfit;
+    this.customProfile.outfitId = outfit.id;
     this.henry.applyOutfit(outfit);
     this.saveProgress();
   }
@@ -300,15 +373,16 @@ export class GameEngine {
     this.currentSpeed = this.baseSpeed;
     this.stats.score = 0;
     this.stats.distance = 0;
+    this.stats.currentStation = 'Park Street Station (1897)';
     this.stats.starsCollected = 0;
     this.stats.tricksPerformed = 0;
     this.stats.perfectTens = 0;
     this.stats.vaultsPerformed = 0;
     this.stats.springboardLaunches = 0;
     this.stats.collectedLetters = { H: false, E: false, N: false, R: false, Y: false };
+    this.triggeredTriviaIds.clear();
     this.activePowerUps.clear();
 
-    // Reset missions progress for this run
     this.missions.forEach(m => {
       m.current = 0;
       m.completed = false;
@@ -350,7 +424,6 @@ export class GameEngine {
       this.targetX = LANE_POSITIONS[this.currentLane];
       soundManager.playLaneSwitch();
 
-      // Mid-air Acrobatic Twist / Roundoff
       if (!this.isGrounded && !this.activePowerUps.has('SKY_RINGS')) {
         this.performGymnasticsTrick('AERIAL_CARTWHEEL', 'EPIC TWIST!', 160);
       }
@@ -373,7 +446,6 @@ export class GameEngine {
   public jump() {
     if (this.status !== 'PLAYING') return;
 
-    // Check if near hurdle -> Olympic Vault
     const nearHurdle = this.findNearbyHurdle(3.4);
     if (nearHurdle) {
       this.performVault(nearHurdle);
@@ -397,19 +469,16 @@ export class GameEngine {
         this.henry.triggerAnimation('JUMP', 0.8);
       }
     } else {
-      // In-air trick: Triple Tuck Backflip
       if (!this.activePowerUps.has('SKY_RINGS')) {
         this.performGymnasticsTrick('TUCK_BACKFLIP', 'PERFECT 10!', 220);
       }
     }
   }
 
-  // Slide or Mid-Air Fast Drop (Subway Surfers signature cancel mechanic)
   public slide() {
     if (this.status !== 'PLAYING') return;
 
     if (!this.isGrounded) {
-      // Cancel jump instantly into fast dive roll!
       this.velocityY = -28.0;
       soundManager.playFastDive();
     } else {
@@ -421,7 +490,6 @@ export class GameEngine {
     this.henry.triggerAnimation('SLIDE', 0.72);
   }
 
-  // Deploy Hoverboard (Chalk Board)
   public deployChalkBoard(): boolean {
     if (this.status !== 'PLAYING') return false;
     if (this.stats.activeBoardActive) return false;
@@ -550,8 +618,6 @@ export class GameEngine {
     this.cameraShakeTime = duration;
   }
 
-  // --- MAIN UPDATE LOOP ---
-
   public update(dt: number) {
     if (this.status !== 'PLAYING') {
       this.henry.update(dt, 0.5, 0, 0);
@@ -560,24 +626,39 @@ export class GameEngine {
 
     const clampedDt = Math.min(dt, 0.05);
 
-    // Speed progression
     const isFever = this.activePowerUps.has('FEVER_MODE');
     const isFlying = this.activePowerUps.has('SKY_RINGS');
     const speedBoost = isFever ? 1.45 : isFlying ? 1.3 : 1.0;
     this.currentSpeed = (this.baseSpeed + Math.min(12.0, this.posZ * 0.0035)) * speedBoost;
 
-    // Advance forward
     const forwardStep = this.currentSpeed * clampedDt;
     this.posZ += forwardStep;
     this.stats.distance = Math.floor(this.posZ);
     this.stats.score += Math.floor(forwardStep * (isFever ? 4 : 2));
 
-    this.updateMissionProgress('m_score', Math.floor(forwardStep * 2));
+    this.updateMissionProgress('m_station', forwardStep);
 
-    // Smooth horizontal lane transition
+    // Check MBTA Stations reached
+    for (let i = MBTA_STATIONS.length - 1; i >= 0; i--) {
+      if (this.stats.distance >= MBTA_STATIONS[i].distance) {
+        if (this.stats.currentStation !== MBTA_STATIONS[i].name) {
+          this.stats.currentStation = MBTA_STATIONS[i].name;
+          if (this.onStationReached) this.onStationReached(MBTA_STATIONS[i]);
+        }
+        break;
+      }
+    }
+
+    // Check Educational Trivia triggers
+    EDUCATIONAL_TRIVIA.forEach(t => {
+      if (this.stats.distance >= t.distanceTrigger && !this.triggeredTriviaIds.has(t.id)) {
+        this.triggeredTriviaIds.add(t.id);
+        if (this.onTriviaUnlocked) this.onTriviaUnlocked(t);
+      }
+    });
+
     this.posX = THREE.MathUtils.damp(this.posX, this.targetX, 18.0, clampedDt);
 
-    // Roll timer
     if (this.isRolling) {
       this.rollTimer -= clampedDt;
       if (this.rollTimer <= 0) {
@@ -585,7 +666,6 @@ export class GameEngine {
       }
     }
 
-    // Board timer
     if (this.stats.activeBoardActive) {
       this.stats.boardTimeRemaining -= clampedDt;
       if (this.stats.boardTimeRemaining <= 0) {
@@ -595,17 +675,13 @@ export class GameEngine {
       }
     }
 
-    // Invulnerability timer
     if (this.invulnerabilityTimer > 0) {
       this.invulnerabilityTimer -= clampedDt;
     }
 
-    // Calculate ground height
     this.groundHeight = this.calculateSurfaceGroundHeight();
 
-    // Vertical Physics / Sky Flight
     if (isFlying) {
-      // Sky Rings high flight mode (elevate to Y = 9.0 smoothly)
       this.posY = THREE.MathUtils.damp(this.posY, 9.0, 4.0, clampedDt);
       this.velocityY = 0;
       this.isGrounded = false;
@@ -631,20 +707,12 @@ export class GameEngine {
       }
     }
 
-    // Update active powerups
     this.updatePowerUps(clampedDt);
-
-    // Check collisions
     this.checkCollisions(clampedDt);
-
-    // Track chunk recycling
     this.trackManager.update(this.posZ, clampedDt);
 
-    // Update Henry
     this.henry.group.position.set(this.posX, this.posY, this.posZ);
     this.henry.update(clampedDt, this.currentSpeed / this.baseSpeed, this.posY, this.groundHeight);
-
-    // Update Camera
     this.updateCamera(clampedDt);
 
     if (this.onStatsChange) this.onStatsChange({ ...this.stats });
@@ -690,7 +758,6 @@ export class GameEngine {
       height: this.isRolling ? 0.7 : 1.6,
     };
 
-    // 1. Collectibles with Smooth Magnet Pull
     const magnetActive = this.activePowerUps.has('MAGNET') || this.activePowerUps.has('FEVER_MODE');
     const magnetRadius = 7.5;
 
@@ -703,7 +770,6 @@ export class GameEngine {
       const distY = col.y - playerBox.y;
 
       if (magnetActive && distZ > -1.0 && distZ < magnetRadius) {
-        // Curve smoothly towards Henry's chest
         col.z -= dt * 14;
         if (Math.abs(distZ) < 2.2) {
           this.collectItem(col);
@@ -711,13 +777,11 @@ export class GameEngine {
         }
       }
 
-      // Normal overlap
       if (Math.abs(distZ) < 1.15 && Math.abs(distX) < 1.0 && Math.abs(distY) < 1.6) {
         this.collectItem(col);
       }
     });
 
-    // 2. Obstacles
     if (this.activePowerUps.has('FEVER_MODE') || this.activePowerUps.has('SKY_RINGS') || this.invulnerabilityTimer > 0) {
       return;
     }
@@ -771,10 +835,8 @@ export class GameEngine {
     }
   }
 
-  // Crash or Board Shield Protection
   private handleCrashOrShield() {
     if (this.stats.activeBoardActive) {
-      // Board saves Henry from crash!
       this.stats.activeBoardActive = false;
       this.stats.boardTimeRemaining = 0;
       this.henry.setBoardActive(false);
@@ -794,7 +856,6 @@ export class GameEngine {
     this.henry.triggerAnimation('STUMBLE', 1.5);
     this.shakeCamera(0.4, 0.4);
 
-    // Bank stars & save high score
     this.stats.starsInBank += this.stats.starsCollected;
     if (this.stats.score > this.stats.highScore) {
       this.stats.highScore = this.stats.score;
@@ -815,6 +876,13 @@ export class GameEngine {
       this.stats.starsCollected += mult;
       this.stats.score += 15 * mult;
       this.updateMissionProgress('m_stars', mult);
+    } else if (col.type === 'BOSTON_MEDALLION') {
+      soundManager.playLetter();
+      this.stats.score += 300;
+      this.stats.starsCollected += 10;
+      // Trigger a random Boston educational fact!
+      const unreadTrivia = EDUCATIONAL_TRIVIA[Math.floor(Math.random() * EDUCATIONAL_TRIVIA.length)];
+      if (this.onTriviaUnlocked) this.onTriviaUnlocked(unreadTrivia);
     } else if (col.type === 'LETTER' && col.letter) {
       soundManager.playLetter();
       const letterKey = col.letter as 'H' | 'E' | 'N' | 'R' | 'Y';
@@ -861,7 +929,7 @@ export class GameEngine {
     if (this.onTrick) {
       this.onTrick({
         id: `fever_${Date.now()}`,
-        name: 'SUPER HENRY FEVER RUSH!',
+        name: 'SUPER HENRY HUB RUSH!',
         bonus: 600,
         timestamp: Date.now(),
         tag: 'PERFECT 10!',
@@ -902,7 +970,6 @@ export class GameEngine {
     this.camera.position.y = THREE.MathUtils.damp(this.camera.position.y, targetCamY, 10.0, dt);
     this.camera.position.z = THREE.MathUtils.damp(this.camera.position.z, targetCamZ, 18.0, dt);
 
-    // Apply Camera Shake if active
     if (this.cameraShakeTime > 0) {
       this.cameraShakeTime -= dt;
       const shakeX = (Math.random() - 0.5) * this.cameraShakeMagnitude;

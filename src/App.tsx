@@ -13,7 +13,10 @@ import {
   TrickFeedback,
   CharacterOutfit,
   ChalkBoardItem,
-  Mission
+  Mission,
+  CustomCharacterProfile,
+  UserProfile,
+  EducationalTrivia
 } from './types/game';
 import { HUD } from './components/HUD';
 import { TouchControls } from './components/TouchControls';
@@ -22,7 +25,11 @@ import { GameOverModal } from './components/GameOverModal';
 import { TrophyRoomModal } from './components/TrophyRoomModal';
 import { ShopModal } from './components/ShopModal';
 import { MissionsModal } from './components/MissionsModal';
-import { TrickGuideModal } from './components/TrickGuideModal';
+import { CharacterStudioModal } from './components/CharacterStudioModal';
+import { GoogleAuthModal } from './components/GoogleAuthModal';
+import { LeaderboardModal } from './components/LeaderboardModal';
+import { TriviaModal } from './components/TriviaModal';
+import { TutorialModal } from './components/TutorialModal';
 import { AshleyFooter } from './components/AshleyFooter';
 import { soundManager } from './audio/soundManager';
 import { Play } from 'lucide-react';
@@ -34,6 +41,7 @@ export default function App() {
   const [stats, setStats] = useState<GameStats>({
     score: 0,
     distance: 0,
+    currentStation: 'Park Street Station (1897)',
     starsCollected: 0,
     starsInBank: 0,
     tricksPerformed: 0,
@@ -56,27 +64,81 @@ export default function App() {
   const [selectedBoard, setSelectedBoard] = useState<ChalkBoardItem>(CHALK_BOARDS[0]);
   const [missions, setMissions] = useState<Mission[]>([]);
 
-  // Modals state
+  // User & Character Studio
+  const [user, setUser] = useState<UserProfile>({
+    id: 'local_user',
+    name: 'Henry Champion',
+    email: '',
+    picture: 'https://api.dicebear.com/7.x/bottts/svg?seed=HenryBostonChampion',
+    isLoggedIn: false,
+    isGoogleAccount: false,
+  });
+
+  const [customProfile, setCustomProfile] = useState<CustomCharacterProfile>({
+    name: 'Henry',
+    hairStyle: 'SPIKY',
+    hairColor: '#7c4722',
+    skinTone: '#ffdfc4',
+    eyeColor: '#0284c7',
+    headbandColor: '#15803d',
+    outfitId: 'boston_t_conductor',
+    shoesColor: '#ef4444',
+    wristGripColor: '#ffffff',
+  });
+
+  // Modal States
   const [isShopOpen, setIsShopOpen] = useState<boolean>(false);
   const [isMissionsOpen, setIsMissionsOpen] = useState<boolean>(false);
+  const [isStudioOpen, setIsStudioOpen] = useState<boolean>(false);
+  const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState<boolean>(false);
+  const [isTutorialOpen, setIsTutorialOpen] = useState<boolean>(false);
   const [isTrophyRoomOpen, setIsTrophyRoomOpen] = useState<boolean>(false);
-  const [isTrickGuideOpen, setIsTrickGuideOpen] = useState<boolean>(false);
+  const [activeTrivia, setActiveTrivia] = useState<EducationalTrivia | null>(null);
 
   // Bind engine
   const handleEngineReady = useCallback((engine: GameEngine) => {
     engineRef.current = engine;
 
-    engine.onStatusChange = (status) => setGameStatus(status);
+    engine.onStatusChange = (status) => {
+      setGameStatus(status);
+      if (status === 'GAME_OVER') {
+        // Submit score to global leaderboard
+        submitScoreToLeaderboard(engine.stats);
+      }
+    };
     engine.onStatsChange = (newStats) => setStats({ ...newStats });
     engine.onPowerUpsChange = (active) => setPowerUps([...active]);
     engine.onTrick = (trick) => setRecentTrick(trick);
     engine.onMissionUpdate = (mList) => setMissions([...mList]);
+    engine.onTriviaUnlocked = (trivia) => setActiveTrivia(trivia);
 
     setStats({ ...engine.stats });
     setMissions([...engine.missions]);
     setSelectedOutfit(engine.currentOutfit);
     setSelectedBoard(engine.currentBoard);
+    setCustomProfile({ ...engine.customProfile });
   }, []);
+
+  const submitScoreToLeaderboard = async (currentStats: GameStats) => {
+    if (currentStats.score <= 0) return;
+    try {
+      await fetch('/api/leaderboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playerName: customProfile.name || user.name || 'Boston Gymnast',
+          avatar: user.picture,
+          score: currentStats.score,
+          distance: currentStats.distance,
+          stationReached: currentStats.currentStation,
+          outfitName: selectedOutfit.name,
+        }),
+      });
+    } catch {
+      // Offline fallback
+    }
+  };
 
   // Keyboard controls
   useEffect(() => {
@@ -109,11 +171,18 @@ export default function App() {
   }, []);
 
   const handleStartGame = () => {
+    closeAllModals();
+    engineRef.current?.startGame();
+  };
+
+  const closeAllModals = () => {
     setIsShopOpen(false);
     setIsMissionsOpen(false);
+    setIsStudioOpen(false);
+    setIsAuthOpen(false);
+    setIsLeaderboardOpen(false);
+    setIsTutorialOpen(false);
     setIsTrophyRoomOpen(false);
-    setIsTrickGuideOpen(false);
-    engineRef.current?.startGame();
   };
 
   const handlePause = () => {
@@ -125,10 +194,7 @@ export default function App() {
   };
 
   const handleRestart = () => {
-    setIsShopOpen(false);
-    setIsMissionsOpen(false);
-    setIsTrophyRoomOpen(false);
-    setIsTrickGuideOpen(false);
+    closeAllModals();
     engineRef.current?.startGame();
   };
 
@@ -153,6 +219,36 @@ export default function App() {
   const handleSelectBoard = (board: ChalkBoardItem) => {
     setSelectedBoard(board);
     engineRef.current?.setBoard(board);
+  };
+
+  const handleSaveProfile = (profile: CustomCharacterProfile) => {
+    setCustomProfile(profile);
+    engineRef.current?.setCustomProfile(profile);
+
+    // Save to server
+    if (user.id) {
+      fetch('/api/user/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          characterProfile: profile,
+          starsInBank: stats.starsInBank,
+          highScore: stats.highScore,
+          boardsAvailable: stats.boardsAvailable,
+        }),
+      }).catch(() => {});
+    }
+  };
+
+  const handleLoginSuccess = (loggedInUser: UserProfile) => {
+    setUser(loggedInUser);
+    // If user has saved character, apply it
+    if ((loggedInUser as unknown as { characterProfile?: CustomCharacterProfile }).characterProfile) {
+      const p = (loggedInUser as unknown as { characterProfile: CustomCharacterProfile }).characterProfile;
+      setCustomProfile(p);
+      engineRef.current?.setCustomProfile(p);
+    }
   };
 
   const handleBuyBoardPacks = () => {
@@ -236,9 +332,13 @@ export default function App() {
         <StartScreen
           onStart={handleStartGame}
           onOpenShop={() => setIsShopOpen(true)}
+          onOpenStudio={() => setIsStudioOpen(true)}
           onOpenMissions={() => setIsMissionsOpen(true)}
+          onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
+          onOpenTutorial={() => setIsTutorialOpen(true)}
           onOpenTrophyRoom={() => setIsTrophyRoomOpen(true)}
-          onOpenTrickGuide={() => setIsTrickGuideOpen(true)}
+          onOpenAuth={() => setIsAuthOpen(true)}
+          user={user}
           selectedOutfit={selectedOutfit}
           stats={stats}
         />
@@ -254,6 +354,59 @@ export default function App() {
             setIsShopOpen(true);
           }}
           onGoToMenu={handleGoToMenu}
+        />
+      )}
+
+      {/* Character Studio Modal */}
+      {isStudioOpen && (
+        <CharacterStudioModal
+          currentProfile={customProfile}
+          selectedOutfit={selectedOutfit}
+          onSaveProfile={handleSaveProfile}
+          onClose={() => setIsStudioOpen(false)}
+        />
+      )}
+
+      {/* Google Auth Modal */}
+      {isAuthOpen && (
+        <GoogleAuthModal
+          user={user}
+          onLoginSuccess={handleLoginSuccess}
+          onLogout={() => {
+            setUser({
+              id: 'guest',
+              name: 'Henry',
+              email: '',
+              picture: 'https://api.dicebear.com/7.x/bottts/svg?seed=Henry',
+              isLoggedIn: false,
+              isGoogleAccount: false,
+            });
+          }}
+          onClose={() => setIsAuthOpen(false)}
+        />
+      )}
+
+      {/* Leaderboard Modal */}
+      {isLeaderboardOpen && (
+        <LeaderboardModal
+          onClose={() => setIsLeaderboardOpen(false)}
+          currentScore={stats.score}
+        />
+      )}
+
+      {/* Tutorial Modal */}
+      {isTutorialOpen && (
+        <TutorialModal
+          onStartGame={handleStartGame}
+          onClose={() => setIsTutorialOpen(false)}
+        />
+      )}
+
+      {/* Educational Trivia Card Modal */}
+      {activeTrivia && (
+        <TriviaModal
+          trivia={activeTrivia}
+          onClose={() => setActiveTrivia(null)}
         />
       )}
 
@@ -284,13 +437,6 @@ export default function App() {
         <TrophyRoomModal
           stats={stats}
           onClose={() => setIsTrophyRoomOpen(false)}
-        />
-      )}
-
-      {/* Trick Guide Modal */}
-      {isTrickGuideOpen && (
-        <TrickGuideModal
-          onClose={() => setIsTrickGuideOpen(false)}
         />
       )}
     </div>

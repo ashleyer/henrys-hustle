@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { GameStats, ActivePowerUp, TrickFeedback } from '../types/game';
-import { Star, Pause, Volume2, VolumeX, Sparkles, Zap, ShieldCheck } from 'lucide-react';
+import { Star, Pause, Volume2, VolumeX, Sparkles, Zap, ShieldCheck, MapPin } from 'lucide-react';
 
 interface HUDProps {
   stats: GameStats;
@@ -56,6 +56,12 @@ export const HUD: React.FC<HUDProps> = ({
               {stats.starsCollected}
             </span>
           </div>
+
+          {/* Current Boston T Station Pill */}
+          <div className="bg-emerald-950/80 border border-emerald-500/50 px-2.5 py-1 rounded-xl text-[11px] font-bold text-emerald-300 flex items-center gap-1 shadow-md w-fit mt-0.5">
+            <MapPin className="w-3 h-3 text-emerald-400 shrink-0" />
+            <span className="truncate max-w-[150px] md:max-w-[220px]">{stats.currentStation}</span>
+          </div>
         </div>
 
         {/* Center: "H-E-N-R-Y" Word Hunt */}
@@ -79,13 +85,12 @@ export const HUD: React.FC<HUDProps> = ({
             })}
           </div>
           <span className="text-[10px] text-amber-300/80 font-semibold mt-1 drop-shadow">
-            {hasFever ? '🔥 SUPER FEVER MODE ACTIVE!' : 'Spell HENRY for Fever Rush!'}
+            {hasFever ? '🔥 SUPER HUB FEVER RUSH!' : 'Spell HENRY for Fever Rush!'}
           </span>
         </div>
 
         {/* Right: Audio, Board & Pause */}
         <div className="flex items-center gap-2 pointer-events-auto">
-          {/* Active Chalk Board or Deploy Button */}
           {stats.activeBoardActive ? (
             <div className="bg-cyan-950/80 border border-cyan-400/80 px-3 py-1.5 rounded-2xl flex items-center gap-2 text-cyan-300 text-xs font-bold shadow-lg">
               <ShieldCheck className="w-4 h-4 text-cyan-400 animate-pulse" />
@@ -133,7 +138,6 @@ export const HUD: React.FC<HUDProps> = ({
           </div>
         )}
 
-        {/* Active Power-Up Timers */}
         {powerUps.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-3">
             {powerUps.map(p => {
@@ -141,7 +145,7 @@ export const HUD: React.FC<HUDProps> = ({
                 p.type === 'SPRING_SHOES'
                   ? 'SPRING SHOES'
                   : p.type === 'SKY_RINGS'
-                  ? 'SKY RINGS'
+                  ? 'BOSTON SKY FLIGHT'
                   : p.type === 'CHALK_BOOST'
                   ? 'SUPER CHALK'
                   : p.type.replace('_', ' ');
@@ -164,7 +168,7 @@ export const HUD: React.FC<HUDProps> = ({
 
         {hasSkyRings && (
           <div className="mt-2 text-cyan-300 text-xs font-black bg-cyan-950/80 px-3 py-1 rounded-full border border-cyan-400/50 animate-pulse">
-            ☁️ HIGH SKY FLIGHT ACTIVE! ☁️
+            ☁️ BOSTON SKY RINGS FLIGHT! ☁️
           </div>
         )}
       </div>

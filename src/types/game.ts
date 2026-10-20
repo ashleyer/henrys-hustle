@@ -3,7 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export type GameStatus = 'MENU' | 'PLAYING' | 'PAUSED' | 'GAME_OVER' | 'SHOP' | 'MISSIONS' | 'SETTINGS';
+export type GameStatus =
+  | 'MENU'
+  | 'PLAYING'
+  | 'PAUSED'
+  | 'GAME_OVER'
+  | 'SHOP'
+  | 'CHARACTER_STUDIO'
+  | 'MISSIONS'
+  | 'LEADERBOARD'
+  | 'ACADEMY'
+  | 'TUTORIAL';
 
 export type Lane = -1 | 0 | 1;
 
@@ -11,7 +21,7 @@ export type PowerUpType =
   | 'MAGNET'
   | 'SPRING_SHOES'
   | 'CHALK_BOOST'
-  | 'SKY_RINGS'      // Jetpack equivalent: fly high above tracks collecting star rings!
+  | 'SKY_RINGS'      // Fly high above Boston's skyline
   | 'MULTIPLIER'
   | 'FEVER_MODE';
 
@@ -21,25 +31,17 @@ export interface ActivePowerUp {
   totalTime: number;
 }
 
-export type GymnasticsTrickType =
-  | 'TUCK_BACKFLIP'
-  | 'PIKE_VAULT'
-  | 'AERIAL_CARTWHEEL'
-  | 'FULL_TWIST'
-  | 'DOUBLE_LAYOUT'
-  | 'TSUKAHARA'
-  | 'BALANCE_SPRINT'
-  | 'STICK_THE_LANDING';
+export type BostonMBTALine = 'GREEN' | 'RED' | 'ORANGE' | 'BLUE';
 
 export type ObstacleType =
-  | 'TRAIN_STATIC'
-  | 'TRAIN_MOVING'
-  | 'HURDLE_LOW'        // Can vault or jump over
-  | 'BARRIER_HIGH'      // Must slide / roll under
-  | 'BARRIER_FULL'      // Must switch lanes
-  | 'SPRINGBOARD'       // Launches high into the air
-  | 'BALANCE_BEAM'      // Suede beam running
-  | 'RAMP';             // Leads to train rooftop
+  | 'TRAIN_STATIC'      // MBTA Green/Red/Orange train car
+  | 'TRAIN_MOVING'      // Oncoming MBTA train
+  | 'HURDLE_LOW'        // Gymnastics vault table / hurdle
+  | 'BARRIER_HIGH'      // MBTA overhead construction barrier
+  | 'BARRIER_FULL'      // Track roadblock
+  | 'SPRINGBOARD'       // Competition springboard
+  | 'BALANCE_BEAM'      // Suede balance beam
+  | 'RAMP';             // Ramp onto MBTA train roof
 
 export interface ObstacleData {
   id: string;
@@ -53,19 +55,20 @@ export interface ObstacleData {
   canRollUnder?: boolean;
   isPassed?: boolean;
   hit?: boolean;
-  speedZ?: number;      // For moving oncoming trains
+  speedZ?: number;
+  lineColor?: BostonMBTALine;
 }
 
 export interface CollectibleData {
   id: string;
-  type: 'STAR' | 'GOLD_MEDAL' | 'LETTER' | 'POWERUP';
+  type: 'STAR' | 'GOLD_MEDAL' | 'LETTER' | 'POWERUP' | 'BOSTON_MEDALLION';
   lane: Lane;
   z: number;
   y: number;
   collected?: boolean;
   letter?: 'H' | 'E' | 'N' | 'R' | 'Y';
   powerUpType?: PowerUpType;
-  curveT?: number;      // For smooth magnet bezier pull
+  triviaId?: string;
 }
 
 export interface TrickFeedback {
@@ -76,21 +79,32 @@ export interface TrickFeedback {
   tag: 'PERFECT 10!' | 'STICK IT!' | 'CHAMPION FLIP!' | 'VAULT MASTER!' | 'EPIC TWIST!' | 'TSUKAHARA!';
 }
 
+// Character Customization Options
+export type HairStyle = 'SPIKY' | 'CURLY' | 'SWEEP' | 'PONYTAIL' | 'BUZZ';
+
+export interface CustomCharacterProfile {
+  name: string;
+  hairStyle: HairStyle;
+  hairColor: string;
+  skinTone: string;
+  eyeColor: string;
+  headbandColor: string;
+  outfitId: string;
+  shoesColor: string;
+  wristGripColor: string;
+}
+
 export interface CharacterOutfit {
   id: string;
   name: string;
   title: string;
   description: string;
+  historyNote?: string;
   jerseyText: string;
   suitColor: string;
   trimColor: string;
-  hairColor: string;
-  skinColor: string;
   shoesColor: string;
   headbandColor: string;
-  hasCape?: boolean;
-  capeColor?: string;
-  glowColor?: string;
   unlocked: boolean;
   cost: number;
 }
@@ -105,13 +119,6 @@ export interface ChalkBoardItem {
   cost: number;
 }
 
-export interface PowerUpUpgrade {
-  level: number;
-  maxLevel: number;
-  baseDuration: number;
-  upgradeCost: number;
-}
-
 export interface Mission {
   id: string;
   title: string;
@@ -123,17 +130,43 @@ export interface Mission {
   rewardStars: number;
 }
 
-export interface GameSettings {
-  showOnScreenButtons: boolean;
-  soundEnabled: boolean;
-  musicVolume: number;
-  sfxVolume: number;
-  sensitivity: number;
+export interface EducationalTrivia {
+  id: string;
+  category: 'BOSTON_HISTORY' | 'GYMNASTICS_ACADEMY';
+  title: string;
+  subtitle: string;
+  funFact: string;
+  didYouKnow: string;
+  icon: string;
+  stationName?: string;
+  distanceTrigger: number;
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  picture: string;
+  isLoggedIn: boolean;
+  isGoogleAccount: boolean;
+}
+
+export interface LeaderboardEntry {
+  id: string;
+  playerName: string;
+  avatar: string;
+  score: number;
+  distance: number;
+  stationReached: string;
+  outfitName: string;
+  isCurrentUser?: boolean;
+  dateStr: string;
 }
 
 export interface GameStats {
   score: number;
   distance: number;
+  currentStation: string;
   starsCollected: number;
   starsInBank: number;
   tricksPerformed: number;

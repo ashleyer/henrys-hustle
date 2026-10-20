@@ -103,6 +103,12 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           </div>
         </div>
 
+        {/* Station Reached */}
+        <div className="w-full bg-emerald-950/40 border border-emerald-500/40 rounded-xl py-1.5 px-3 mb-4 text-xs font-bold text-emerald-300 flex items-center justify-center gap-1.5">
+          <span>🚇 Station Reached:</span>
+          <span className="text-white">{stats.currentStation}</span>
+        </div>
+
         {/* Actions */}
         <div className="flex flex-col gap-2.5 w-full">
           <button
