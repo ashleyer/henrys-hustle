@@ -180,4 +180,5 @@ export interface GameStats {
   activeBoardActive: boolean;
   boardTimeRemaining: number;
   collectedLetters: { [key in 'H' | 'E' | 'N' | 'R' | 'Y']: boolean };
+  speedPace?: 'JUNIOR' | 'PRO';
 }

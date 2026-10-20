@@ -338,6 +338,7 @@ export default function App() {
           onOpenTutorial={() => setIsTutorialOpen(true)}
           onOpenTrophyRoom={() => setIsTrophyRoomOpen(true)}
           onOpenAuth={() => setIsAuthOpen(true)}
+          onSetPace={(pace) => engineRef.current?.setSpeedPace(pace)}
           user={user}
           selectedOutfit={selectedOutfit}
           stats={stats}

@@ -5,8 +5,9 @@
 
 import React from 'react';
 import { CharacterOutfit, GameStats, UserProfile } from '../types/game';
-import { Play, Trophy, Sparkles, Star, ShoppingBag, Award, BookOpen, Palette, User, ShieldCheck } from 'lucide-react';
+import { Play, Trophy, Sparkles, Star, ShoppingBag, Award, BookOpen, Palette, User, Zap } from 'lucide-react';
 import { AshleyFooter } from './AshleyFooter';
+import { soundManager } from '../audio/soundManager';
 
 interface StartScreenProps {
   onStart: () => void;
@@ -17,6 +18,7 @@ interface StartScreenProps {
   onOpenTutorial: () => void;
   onOpenTrophyRoom: () => void;
   onOpenAuth: () => void;
+  onSetPace?: (pace: 'JUNIOR' | 'PRO') => void;
   user: UserProfile;
   selectedOutfit: CharacterOutfit;
   stats: GameStats;
@@ -31,13 +33,21 @@ export const StartScreen: React.FC<StartScreenProps> = ({
   onOpenTutorial,
   onOpenTrophyRoom,
   onOpenAuth,
+  onSetPace,
   user,
   selectedOutfit,
   stats,
 }) => {
+  const currentPace = stats.speedPace || 'JUNIOR';
+
+  const handlePaceChange = (pace: 'JUNIOR' | 'PRO') => {
+    soundManager.playLaneSwitch();
+    if (onSetPace) onSetPace(pace);
+  };
+
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center p-3 md:p-6 bg-slate-950/75 backdrop-blur-sm select-none font-sans">
-      <div className="max-w-md w-full bg-slate-900/95 border-2 border-emerald-500/60 rounded-3xl p-5 md:p-7 shadow-2xl flex flex-col items-center text-center relative overflow-hidden">
+    <div className="absolute inset-0 z-30 flex items-center justify-center p-3 md:p-6 bg-slate-950/75 backdrop-blur-sm select-none font-sans overflow-y-auto">
+      <div className="max-w-md w-full bg-slate-900/95 border-2 border-emerald-500/60 rounded-3xl p-5 md:p-6 shadow-2xl flex flex-col items-center text-center relative overflow-hidden my-auto">
         {/* Top User Account Bar */}
         <div className="w-full flex items-center justify-between mb-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-black uppercase tracking-wider">
@@ -46,7 +56,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
 
           <button
             onClick={onOpenAuth}
-            className="flex items-center gap-1.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 px-3 py-1 rounded-full text-xs font-bold text-slate-200 transition"
+            className="flex items-center gap-1.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 px-3 py-1 rounded-full text-xs font-bold text-slate-200 transition cursor-pointer"
           >
             {user.isLoggedIn ? (
               <>
@@ -86,7 +96,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
         </div>
 
         {/* Character Preview & Studio Button */}
-        <div className="w-full bg-slate-950/60 rounded-2xl p-3 border border-slate-800 mb-3 flex items-center justify-between">
+        <div className="w-full bg-slate-950/60 rounded-2xl p-3 border border-slate-800 mb-2.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
               className="w-11 h-11 rounded-xl border-2 border-white/20 flex items-center justify-center font-arcade text-lg text-white font-black shadow-inner"
@@ -103,39 +113,68 @@ export const StartScreen: React.FC<StartScreenProps> = ({
           </div>
           <button
             onClick={onOpenStudio}
-            className="text-xs font-bold text-yellow-400 hover:text-yellow-300 bg-yellow-500/10 hover:bg-yellow-500/20 px-3 py-1.5 rounded-xl border border-yellow-400/30 flex items-center gap-1 transition"
+            className="text-xs font-bold text-yellow-400 hover:text-yellow-300 bg-yellow-500/10 hover:bg-yellow-500/20 px-3 py-1.5 rounded-xl border border-yellow-400/30 flex items-center gap-1 transition cursor-pointer"
           >
             <Palette className="w-3.5 h-3.5" />
             <span>Customize</span>
           </button>
         </div>
 
+        {/* Game Speed Mode Selector */}
+        <div className="w-full bg-slate-950/80 border border-slate-800 rounded-2xl p-2 mb-3 flex items-center justify-between">
+          <span className="text-xs font-bold text-slate-400 flex items-center gap-1 pl-1">
+            <Zap className="w-3.5 h-3.5 text-yellow-400" /> SPEED:
+          </span>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => handlePaceChange('JUNIOR')}
+              className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1 ${
+                currentPace === 'JUNIOR'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md'
+                  : 'bg-slate-800 text-slate-400 hover:text-white'
+              }`}
+            >
+              <span>🌟 Junior Explorer</span>
+            </button>
+            <button
+              onClick={() => handlePaceChange('PRO')}
+              className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1 ${
+                currentPace === 'PRO'
+                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  : 'bg-slate-800 text-slate-400 hover:text-white'
+              }`}
+            >
+              <span>⚡ Pro Hustle</span>
+            </button>
+          </div>
+        </div>
+
         {/* Quick Menu Grid */}
         <div className="grid grid-cols-4 gap-2 w-full mb-3">
           <button
             onClick={onOpenShop}
-            className="py-2 rounded-2xl bg-slate-800/70 hover:bg-slate-800 text-slate-200 border border-slate-700 flex flex-col items-center justify-center gap-1 transition active:scale-95"
+            className="py-2 rounded-2xl bg-slate-800/70 hover:bg-slate-800 text-slate-200 border border-slate-700 flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer"
           >
             <ShoppingBag className="w-4 h-4 text-cyan-400" />
             <span className="text-[9px] font-bold">SHOP</span>
           </button>
           <button
             onClick={onOpenLeaderboard}
-            className="py-2 rounded-2xl bg-slate-800/70 hover:bg-slate-800 text-slate-200 border border-slate-700 flex flex-col items-center justify-center gap-1 transition active:scale-95"
+            className="py-2 rounded-2xl bg-slate-800/70 hover:bg-slate-800 text-slate-200 border border-slate-700 flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer"
           >
             <Trophy className="w-4 h-4 text-yellow-400" />
             <span className="text-[9px] font-bold">LEADERBOARD</span>
           </button>
           <button
             onClick={onOpenMissions}
-            className="py-2 rounded-2xl bg-slate-800/70 hover:bg-slate-800 text-slate-200 border border-slate-700 flex flex-col items-center justify-center gap-1 transition active:scale-95"
+            className="py-2 rounded-2xl bg-slate-800/70 hover:bg-slate-800 text-slate-200 border border-slate-700 flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer"
           >
             <Award className="w-4 h-4 text-amber-400" />
             <span className="text-[9px] font-bold">MISSIONS</span>
           </button>
           <button
             onClick={onOpenTutorial}
-            className="py-2 rounded-2xl bg-slate-800/70 hover:bg-slate-800 text-slate-200 border border-slate-700 flex flex-col items-center justify-center gap-1 transition active:scale-95"
+            className="py-2 rounded-2xl bg-slate-800/70 hover:bg-slate-800 text-slate-200 border border-slate-700 flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer"
           >
             <BookOpen className="w-4 h-4 text-emerald-400" />
             <span className="text-[9px] font-bold">TUTORIAL</span>
@@ -145,15 +184,15 @@ export const StartScreen: React.FC<StartScreenProps> = ({
         {/* Big Start Hustle Button */}
         <button
           onClick={onStart}
-          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-400 via-yellow-400 to-amber-500 hover:from-emerald-300 hover:to-amber-400 text-slate-950 font-arcade text-xl tracking-wider shadow-[0_0_28px_rgba(16,185,129,0.5)] transition transform active:scale-95 flex items-center justify-center gap-2 mb-2"
+          className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-400 via-yellow-400 to-amber-500 hover:from-emerald-300 hover:to-amber-400 text-slate-950 font-arcade text-xl tracking-wider shadow-[0_0_28px_rgba(16,185,129,0.5)] transition transform active:scale-95 flex items-center justify-center gap-2 mb-2 cursor-pointer font-black"
         >
           <Play className="w-6 h-6 fill-slate-950" />
-          <span>START HUB HUSTLE!</span>
+          <span>START HUB HUSTLE! 🚀</span>
         </button>
 
         <button
           onClick={onOpenTrophyRoom}
-          className="text-xs text-slate-400 hover:text-white font-semibold flex items-center justify-center gap-1.5 py-0.5 mb-2"
+          className="text-xs text-slate-400 hover:text-white font-semibold flex items-center justify-center gap-1.5 py-0.5 mb-2 cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
           <span>Henry's Gymnastics Trophy Room</span>

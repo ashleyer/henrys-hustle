@@ -246,6 +246,7 @@ export class GameEngine {
     activeBoardActive: false,
     boardTimeRemaining: 0,
     collectedLetters: { H: false, E: false, N: false, R: false, Y: false },
+    speedPace: 'JUNIOR',
   };
 
   public missions: Mission[] = [...INITIAL_MISSIONS];
@@ -309,9 +310,24 @@ export class GameEngine {
         const found = OUTFITS.find(o => o.id === savedOutfit);
         if (found) this.currentOutfit = found;
       }
+
+      const savedPace = localStorage.getItem('hub_hustle_pace');
+      if (savedPace === 'PRO' || savedPace === 'JUNIOR') {
+        this.stats.speedPace = savedPace;
+        this.baseSpeed = savedPace === 'JUNIOR' ? 13.5 : 18.0;
+      } else {
+        this.baseSpeed = 13.5; // Default friendly Junior pace
+      }
     } catch {
       // LocalStorage fallback
     }
+  }
+
+  public setSpeedPace(pace: 'JUNIOR' | 'PRO') {
+    this.stats.speedPace = pace;
+    this.baseSpeed = pace === 'JUNIOR' ? 13.5 : 18.0;
+    this.saveProgress();
+    if (this.onStatsChange) this.onStatsChange({ ...this.stats });
   }
 
   public saveProgress() {
@@ -321,6 +337,9 @@ export class GameEngine {
       localStorage.setItem('hub_hustle_boards', this.stats.boardsAvailable.toString());
       localStorage.setItem('hub_hustle_profile', JSON.stringify(this.customProfile));
       localStorage.setItem('hub_hustle_outfit', this.currentOutfit.id);
+      if (this.stats.speedPace) {
+        localStorage.setItem('hub_hustle_pace', this.stats.speedPace);
+      }
     } catch {
       // Ignore
     }
@@ -629,7 +648,10 @@ export class GameEngine {
     const isFever = this.activePowerUps.has('FEVER_MODE');
     const isFlying = this.activePowerUps.has('SKY_RINGS');
     const speedBoost = isFever ? 1.45 : isFlying ? 1.3 : 1.0;
-    this.currentSpeed = (this.baseSpeed + Math.min(12.0, this.posZ * 0.0035)) * speedBoost;
+    const isJunior = this.stats.speedPace === 'JUNIOR';
+    const accelFactor = isJunior ? 0.0016 : 0.0035;
+    const maxBonus = isJunior ? 6.0 : 12.0;
+    this.currentSpeed = (this.baseSpeed + Math.min(maxBonus, this.posZ * accelFactor)) * speedBoost;
 
     const forwardStep = this.currentSpeed * clampedDt;
     this.posZ += forwardStep;
@@ -643,6 +665,7 @@ export class GameEngine {
       if (this.stats.distance >= MBTA_STATIONS[i].distance) {
         if (this.stats.currentStation !== MBTA_STATIONS[i].name) {
           this.stats.currentStation = MBTA_STATIONS[i].name;
+          soundManager.playStationChime();
           if (this.onStationReached) this.onStationReached(MBTA_STATIONS[i]);
         }
         break;
@@ -888,6 +911,16 @@ export class GameEngine {
       const letterKey = col.letter as 'H' | 'E' | 'N' | 'R' | 'Y';
       this.stats.collectedLetters[letterKey] = true;
       this.stats.score += 200;
+
+      if (this.onTrick) {
+        this.onTrick({
+          id: `letter_${Date.now()}`,
+          name: `FOUND LETTER "${letterKey}"!`,
+          bonus: 200,
+          timestamp: Date.now(),
+          tag: 'STICK IT!',
+        });
+      }
 
       const allLetters = (['H', 'E', 'N', 'R', 'Y'] as const).every(l => this.stats.collectedLetters[l]);
       if (allLetters) {

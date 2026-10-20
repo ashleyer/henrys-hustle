@@ -26,10 +26,17 @@ class SoundManager {
   private readonly coinScale = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50, 1174.66, 1318.51];
 
   constructor() {
-    // Context will resume on first user interaction
+    if (typeof window !== 'undefined') {
+      const unlockAudio = () => {
+        this.initContext();
+      };
+      ['touchstart', 'touchend', 'pointerdown', 'keydown', 'click'].forEach(evt => {
+        window.addEventListener(evt, unlockAudio, { once: true, passive: true });
+      });
+    }
   }
 
-  private initContext() {
+  public initContext() {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.ctx = new AudioCtx();
@@ -253,6 +260,25 @@ class SoundManager {
     });
   }
 
+  // Boston MBTA Subway door announcement chime ("Ding-dong!")
+  public playStationChime() {
+    if (this.isMuted) return;
+    this.initContext();
+    this.playTone(659.25, 'sine', 0.24, 0.45);
+    setTimeout(() => {
+      this.playTone(523.25, 'sine', 0.42, 0.45);
+    }, 150);
+  }
+
+  public playTrickWoosh() {
+    if (this.isMuted) return;
+    this.initContext();
+    this.playTone(480, 'triangle', 0.16, 0.35, 880);
+    setTimeout(() => {
+      this.playTone(880, 'sine', 0.14, 0.3, 1200);
+    }, 35);
+  }
+
   // --- PROCEDURAL BACKGROUND RUNNER MUSIC ---
 
   public setFeverMode(enabled: boolean) {
@@ -397,6 +423,39 @@ class SoundManager {
       this.bgmInterval = null;
     }
     this.isBgmPlaying = false;
+  }
+
+  // Kid-friendly speech narration for educational trivia & discoveries
+  public speakText(text: string, onEnd?: () => void) {
+    if (this.isMuted || typeof window === 'undefined' || !window.speechSynthesis) {
+      if (onEnd) onEnd();
+      return;
+    }
+    try {
+      window.speechSynthesis.cancel();
+      // Clean emoji or formatting from spoken text
+      const cleanText = text.replace(/[\u{1F300}-\u{1F6FF}]/gu, '');
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.rate = 0.95; // Clear, easy to understand for a kid
+      utterance.pitch = 1.15; // Cheerful, friendly tone
+      if (onEnd) {
+        utterance.onend = onEnd;
+        utterance.onerror = onEnd;
+      }
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      if (onEnd) onEnd();
+    }
+  }
+
+  public stopSpeaking() {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        // Ignore
+      }
+    }
   }
 }
 
