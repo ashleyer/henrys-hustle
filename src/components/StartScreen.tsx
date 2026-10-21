@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { CharacterOutfit, GameStats, UserProfile } from '../types/game';
-import { Play, Trophy, Sparkles, Star, ShoppingBag, Award, BookOpen, Palette, User, Zap } from 'lucide-react';
+import { Play, Trophy, Sparkles, Star, ShoppingBag, Award, BookOpen, Palette, User, Zap, Settings } from 'lucide-react';
 import { AshleyFooter } from './AshleyFooter';
 import { soundManager } from '../audio/soundManager';
 
@@ -18,6 +18,7 @@ interface StartScreenProps {
   onOpenTutorial: () => void;
   onOpenTrophyRoom: () => void;
   onOpenAuth: () => void;
+  onOpenSettings: () => void;
   onSetPace?: (pace: 'JUNIOR' | 'PRO') => void;
   user: UserProfile;
   selectedOutfit: CharacterOutfit;
@@ -33,6 +34,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
   onOpenTutorial,
   onOpenTrophyRoom,
   onOpenAuth,
+  onOpenSettings,
   onSetPace,
   user,
   selectedOutfit,
@@ -150,7 +152,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
         </div>
 
         {/* Quick Menu Grid */}
-        <div className="grid grid-cols-4 gap-2 w-full mb-3">
+        <div className="grid grid-cols-5 gap-2 w-full mb-3">
           <button
             onClick={onOpenShop}
             className="py-2 rounded-2xl bg-slate-800/70 hover:bg-slate-800 text-slate-200 border border-slate-700 flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer"
@@ -178,6 +180,13 @@ export const StartScreen: React.FC<StartScreenProps> = ({
           >
             <BookOpen className="w-4 h-4 text-emerald-400" />
             <span className="text-[9px] font-bold">TUTORIAL</span>
+          </button>
+          <button
+            onClick={onOpenSettings}
+            className="py-2 rounded-2xl bg-slate-800/70 hover:bg-slate-800 text-slate-200 border border-slate-700 flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer"
+          >
+            <Settings className="w-4 h-4 text-slate-300" />
+            <span className="text-[9px] font-bold">SETTINGS</span>
           </button>
         </div>
 

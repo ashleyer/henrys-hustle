@@ -31,6 +31,7 @@ import { LeaderboardModal } from './components/LeaderboardModal';
 import { TriviaModal } from './components/TriviaModal';
 import { TutorialModal } from './components/TutorialModal';
 import { AshleyFooter } from './components/AshleyFooter';
+import { SettingsModal } from './components/SettingsModal';
 import { soundManager } from './audio/soundManager';
 import { Play } from 'lucide-react';
 
@@ -59,7 +60,31 @@ export default function App() {
 
   const [powerUps, setPowerUps] = useState<ActivePowerUp[]>([]);
   const [recentTrick, setRecentTrick] = useState<TrickFeedback | null>(null);
-  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [isMuted, setIsMuted] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('hub_hustle_muted') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [musicVolume, setMusicVolume] = useState<number>(() => {
+    try {
+      const savedValue = localStorage.getItem('hub_hustle_music_volume');
+      const savedVolume = savedValue === null ? NaN : Number(savedValue);
+      return Number.isFinite(savedVolume) ? Math.max(0, Math.min(1, savedVolume)) : 0.22;
+    } catch {
+      return 0.22;
+    }
+  });
+  const [sfxVolume, setSfxVolume] = useState<number>(() => {
+    try {
+      const savedValue = localStorage.getItem('hub_hustle_sfx_volume');
+      const savedVolume = savedValue === null ? NaN : Number(savedValue);
+      return Number.isFinite(savedVolume) ? Math.max(0, Math.min(1, savedVolume)) : 0.45;
+    } catch {
+      return 0.45;
+    }
+  });
   const [selectedOutfit, setSelectedOutfit] = useState<CharacterOutfit>(OUTFITS[0]);
   const [selectedBoard, setSelectedBoard] = useState<ChalkBoardItem>(CHALK_BOARDS[0]);
   const [missions, setMissions] = useState<Mission[]>([]);
@@ -94,7 +119,13 @@ export default function App() {
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState<boolean>(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState<boolean>(false);
   const [isTrophyRoomOpen, setIsTrophyRoomOpen] = useState<boolean>(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [activeTrivia, setActiveTrivia] = useState<EducationalTrivia | null>(null);
+
+  useEffect(() => {
+    soundManager.setVolumes(musicVolume, sfxVolume);
+    soundManager.setMuted(isMuted);
+  }, [musicVolume, sfxVolume, isMuted]);
 
   // Bind engine
   const handleEngineReady = useCallback((engine: GameEngine) => {
@@ -183,6 +214,7 @@ export default function App() {
     setIsLeaderboardOpen(false);
     setIsTutorialOpen(false);
     setIsTrophyRoomOpen(false);
+    setIsSettingsOpen(false);
   };
 
   const handlePause = () => {
@@ -209,6 +241,31 @@ export default function App() {
     const nextMuted = !isMuted;
     setIsMuted(nextMuted);
     soundManager.setMuted(nextMuted);
+    try {
+      localStorage.setItem('hub_hustle_muted', String(nextMuted));
+    } catch {
+      // Ignore unavailable storage
+    }
+  };
+
+  const handleMusicVolumeChange = (volume: number) => {
+    setMusicVolume(volume);
+    soundManager.setVolumes(volume, sfxVolume);
+    try {
+      localStorage.setItem('hub_hustle_music_volume', String(volume));
+    } catch {
+      // Ignore unavailable storage
+    }
+  };
+
+  const handleSfxVolumeChange = (volume: number) => {
+    setSfxVolume(volume);
+    soundManager.setVolumes(musicVolume, volume);
+    try {
+      localStorage.setItem('hub_hustle_sfx_volume', String(volume));
+    } catch {
+      // Ignore unavailable storage
+    }
   };
 
   const handleSelectOutfit = (outfit: CharacterOutfit) => {
@@ -314,6 +371,12 @@ export default function App() {
                 <Play className="w-4 h-4 fill-slate-950" /> RESUME
               </button>
               <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="w-full py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold hover:bg-slate-700 transition"
+              >
+                SETTINGS
+              </button>
+              <button
                 onClick={handleGoToMenu}
                 className="w-full py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold hover:bg-slate-700 transition"
               >
@@ -338,6 +401,7 @@ export default function App() {
           onOpenTutorial={() => setIsTutorialOpen(true)}
           onOpenTrophyRoom={() => setIsTrophyRoomOpen(true)}
           onOpenAuth={() => setIsAuthOpen(true)}
+          onOpenSettings={() => setIsSettingsOpen(true)}
           onSetPace={(pace) => engineRef.current?.setSpeedPace(pace)}
           user={user}
           selectedOutfit={selectedOutfit}
@@ -438,6 +502,18 @@ export default function App() {
         <TrophyRoomModal
           stats={stats}
           onClose={() => setIsTrophyRoomOpen(false)}
+        />
+      )}
+
+      {isSettingsOpen && (
+        <SettingsModal
+          isMuted={isMuted}
+          musicVolume={musicVolume}
+          sfxVolume={sfxVolume}
+          onToggleMute={handleToggleMute}
+          onMusicVolumeChange={handleMusicVolumeChange}
+          onSfxVolumeChange={handleSfxVolumeChange}
+          onClose={() => setIsSettingsOpen(false)}
         />
       )}
     </div>
