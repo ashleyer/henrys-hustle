@@ -52,27 +52,12 @@ export const StartScreen: React.FC<StartScreenProps> = ({
     if (onSetPace) onSetPace(pace);
   };
 
-  const handleSpeakWelcome = () => {
-    soundManager.speakText(
-      "Welcome to Henry's Hub Hustle! Tap the big green Play button to run, jump over hurdles, and collect shiny gold stars on the Boston subway!"
-    );
-  };
-
   return (
     <div className="absolute inset-0 z-30 flex items-center justify-center p-2.5 sm:p-5 bg-slate-950/70 select-none font-sans overflow-y-auto pt-safe pb-safe">
       <div className="max-w-md sm:max-w-lg w-full bg-slate-900/95 border-2 border-emerald-500/70 rounded-3xl p-4 sm:p-6 shadow-2xl flex flex-col items-center text-center relative overflow-hidden my-auto">
         {/* Top User Account, Install App & Audio Bar */}
         <div className="w-full flex items-center justify-between gap-1.5 mb-2 flex-wrap">
           <div className="flex items-center gap-1.5">
-            <button
-              onClick={handleSpeakWelcome}
-              className="px-2.5 py-1 rounded-xl border border-emerald-400/50 bg-emerald-950/80 hover:bg-emerald-900/80 text-emerald-200 text-[11px] font-bold flex items-center gap-1 transition cursor-pointer whitespace-nowrap shrink-0"
-              title="Read out loud for kids"
-            >
-              <Volume2 className="w-3.5 h-3.5 text-emerald-300" />
-              <span>Read to Me</span>
-            </button>
-
             {onToggleMusic && (
               <button
                 onClick={onToggleMusic}
@@ -154,10 +139,10 @@ export const StartScreen: React.FC<StartScreenProps> = ({
           </button>
         </div>
 
-        {/* Kid-Friendly Speed Selector */}
+        {/* Pace Selector */}
         <div className="w-full bg-slate-950/80 border border-slate-800 rounded-2xl p-2 mb-2.5 flex items-center justify-between gap-2">
           <span className="text-xs font-bold text-slate-300 flex items-center gap-1 pl-1 whitespace-nowrap">
-            <Zap className="w-3.5 h-3.5 text-yellow-400" /> SPEED:
+            <Zap className="w-3.5 h-3.5 text-yellow-400" /> PACE:
           </span>
           <div className="flex gap-1.5 flex-1 justify-end">
             <button
@@ -168,7 +153,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
                   : 'bg-slate-800 text-slate-300 hover:text-white'
               }`}
             >
-              <span>🐢 Easy (Kids)</span>
+              <span>🚶 Strolling Along</span>
             </button>
             <button
               onClick={() => handlePaceChange('PRO')}
@@ -178,7 +163,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
                   : 'bg-slate-800 text-slate-300 hover:text-white'
               }`}
             >
-              <span>🚀 Fast</span>
+              <span>💘 Late for a Date</span>
             </button>
           </div>
         </div>

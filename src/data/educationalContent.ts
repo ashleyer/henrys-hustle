@@ -129,10 +129,10 @@ export const EDUCATIONAL_TRIVIA: EducationalTrivia[] = [
   {
     id: 'trivia_angular_momentum',
     category: 'GYMNASTICS_ACADEMY',
-    title: 'How to Spin Fast: The Super Tuck!',
+    title: 'Turbo Spin: The Super Tuck!',
     subtitle: 'Secret Physics of the Backflip',
     funFact:
-      'When you hug your knees super tight to your chest, your body turns into a tiny cannonball and spins 3 times faster! To land safely, you open your arms wide to slow down.',
+      'When you hug your knees super tight to your chest, your body turns into a tiny cannonball and spins 3 times quicker! To land safely, you open your arms wide to slow down.',
     didYouKnow: 'Ice skaters and divers use this exact same trick to spin like a turbo fan!',
     icon: '🔄',
     distanceTrigger: 1150,

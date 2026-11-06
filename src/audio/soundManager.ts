@@ -505,37 +505,13 @@ class SoundManager {
     this.isBgmPlaying = false;
   }
 
-  // Kid-friendly speech narration for educational trivia & discoveries
-  public speakText(text: string, onEnd?: () => void) {
-    if (this.isMuted || typeof window === 'undefined' || !window.speechSynthesis) {
-      if (onEnd) onEnd();
-      return;
-    }
-    try {
-      window.speechSynthesis.cancel();
-      // Clean emoji or formatting from spoken text
-      const cleanText = text.replace(/[\u{1F300}-\u{1F6FF}]/gu, '');
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.rate = 0.95; // Clear, easy to understand for a kid
-      utterance.pitch = 1.15; // Cheerful, friendly tone
-      if (onEnd) {
-        utterance.onend = onEnd;
-        utterance.onerror = onEnd;
-      }
-      window.speechSynthesis.speak(utterance);
-    } catch {
-      if (onEnd) onEnd();
-    }
+  // No robotic TTS voice
+  public speakText(_text: string, onEnd?: () => void) {
+    if (onEnd) onEnd();
   }
 
   public stopSpeaking() {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      try {
-        window.speechSynthesis.cancel();
-      } catch {
-        // Ignore
-      }
-    }
+    // No-op (voice disabled)
   }
 }
 

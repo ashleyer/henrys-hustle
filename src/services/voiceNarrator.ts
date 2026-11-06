@@ -32,7 +32,7 @@ export const LANDMARK_NARRATIONS: Record<string, NarrationSnippet> = {
     title: 'Copley Square',
     landmark: 'Marathon Finish Line',
     category: 'GYMNASTICS_HISTORY',
-    text: 'This is the famous Boston Marathon finish line! Run super fast like a champion!',
+    text: 'This is the famous Boston Marathon finish line! Sprint across like a champion!',
     icon: '🏃‍♂️',
     badgeEmoji: '🏅',
     durationMs: 4200,
@@ -102,10 +102,10 @@ export const GYMNASTICS_NARRATIONS: NarrationSnippet[] = [
   },
   {
     id: 'gym_angular_momentum',
-    title: 'Fast Cannonball Spin',
+    title: 'Turbo Cannonball Spin',
     landmark: 'Gymnastics Fun Fact',
     category: 'GYMNASTICS_HISTORY',
-    text: 'Hugging your knees tight makes you spin three times faster in the air!',
+    text: 'Hugging your knees tight makes you spin three times quicker in the air!',
     icon: '🔄',
     badgeEmoji: '⚡',
     durationMs: 3800,
@@ -135,30 +135,7 @@ class VoiceNarrator {
   private selectedVoice: SpeechSynthesisVoice | null = null;
 
   constructor() {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('hub_hustle_voice_enabled');
-        if (saved !== null) {
-          this.isVoiceEnabled = saved === 'true';
-        }
-      } catch {
-        // Fallback
-      }
-
-      if ('speechSynthesis' in window) {
-        const pickVoice = () => {
-          const voices = window.speechSynthesis.getVoices();
-          // Prefer high-quality, friendly English voices
-          const preferred = voices.find(v =>
-            (v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Aaron') || v.name.includes('Google US English') || v.name.includes('Daniel')) &&
-            v.lang.startsWith('en')
-          ) || voices.find(v => v.lang.startsWith('en')) || voices[0] || null;
-          this.selectedVoice = preferred;
-        };
-        pickVoice();
-        window.speechSynthesis.onvoiceschanged = pickVoice;
-      }
-    }
+    this.isVoiceEnabled = false;
   }
 
   public subscribe(listener: NarrationListener): () => void {
@@ -180,18 +157,13 @@ class VoiceNarrator {
 
   public setVoiceEnabled(enabled: boolean) {
     this.isVoiceEnabled = enabled;
-    try {
-      localStorage.setItem('hub_hustle_voice_enabled', enabled ? 'true' : 'false');
-    } catch {
-      // Fallback
-    }
     if (!enabled) {
       this.cancelSpeech();
     }
   }
 
   public getVoiceEnabled(): boolean {
-    return this.isVoiceEnabled;
+    return false;
   }
 
   public speakLandmark(stationName: string, force: boolean = false): boolean {
@@ -213,7 +185,7 @@ class VoiceNarrator {
     }
     this.lastNarrationTime = now;
 
-    // Station announcement chime
+    // Station announcement chime (pleasant musical chime, no robotic TTS voice)
     soundManager.playStationChime();
 
     // Set subtitle
@@ -223,45 +195,16 @@ class VoiceNarrator {
     if (this.hideTimer) {
       clearTimeout(this.hideTimer);
     }
-    const duration = snippet.durationMs || 6500;
+    const duration = snippet.durationMs || 4200;
     this.hideTimer = window.setTimeout(() => {
       this.currentSnippet = null;
       this.notify();
     }, duration);
 
-    // Speak audio if enabled and not muted
-    if (this.isVoiceEnabled && !this.isMuted && typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      try {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(snippet.text);
-        if (this.selectedVoice) {
-          utterance.voice = this.selectedVoice;
-        }
-        utterance.pitch = 1.12; // Bright, enthusiastic, kid-friendly
-        utterance.rate = 1.05;  // Clear, crisp cadence
-        utterance.volume = 0.95;
-
-        utterance.onend = () => {
-          // Keep subtitle visible for extra half-second for readability
-        };
-
-        window.speechSynthesis.speak(utterance);
-      } catch {
-        // SpeechSynthesis error ignored; subtitle remains active
-      }
-    }
-
     return true;
   }
 
   public cancelSpeech() {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      try {
-        window.speechSynthesis.cancel();
-      } catch {
-        // Fallback
-      }
-    }
     if (this.hideTimer) {
       clearTimeout(this.hideTimer);
       this.hideTimer = null;

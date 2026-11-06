@@ -62,7 +62,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ onStartGame, onClo
           <ArrowDown className="w-9 h-9 stroke-[3]" />
         </div>
       ),
-      tip: 'Fast dropping is how pro gymnasts dodge sudden hurdles!',
+      tip: 'Quick dropping is how pro gymnasts dodge sudden hurdles!',
       soundAction: () => soundManager.playSlide(),
     },
     {
@@ -97,20 +97,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ onStartGame, onClo
 
   const currentStep = steps[step];
 
-  const handleSpeak = () => {
-    if (isSpeaking) {
-      soundManager.stopSpeaking();
-      setIsSpeaking(false);
-      return;
-    }
-    setIsSpeaking(true);
-    const speechText = `${currentStep.title}. ${currentStep.kidSummary}. ${currentStep.desc}. How to do it: ${currentStep.howTo}. Tip: ${currentStep.tip}`;
-    soundManager.speakText(speechText, () => setIsSpeaking(false));
-  };
-
   const handleNext = () => {
-    soundManager.stopSpeaking();
-    setIsSpeaking(false);
     currentStep.soundAction();
     if (step < steps.length - 1) {
       setStep(step + 1);
@@ -120,8 +107,6 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ onStartGame, onClo
   };
 
   const handlePrev = () => {
-    soundManager.stopSpeaking();
-    setIsSpeaking(false);
     if (step > 0) {
       setStep(step - 1);
     }
@@ -132,39 +117,18 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ onStartGame, onClo
       <div className="max-w-md w-full bg-slate-900 border-3 border-yellow-400 rounded-3xl p-5 sm:p-6 shadow-[0_0_40px_rgba(250,204,21,0.3)] relative flex flex-col text-center">
         {/* Close Button */}
         <button
-          onClick={() => {
-            soundManager.stopSpeaking();
-            onClose();
-          }}
+          onClick={onClose}
           className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-xl bg-slate-800/80 cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* Read to Me Button */}
-        <button
-          onClick={handleSpeak}
-          className={`absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 transition cursor-pointer border ${
-            isSpeaking
-              ? 'bg-rose-500 text-white border-rose-300 animate-pulse'
-              : 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40 hover:bg-emerald-500/30'
-          }`}
-          title="Read instructions out loud"
-        >
-          <Volume2 className="w-3.5 h-3.5" />
-          <span>{isSpeaking ? 'Stop Voice' : '🔊 Read to Me!'}</span>
-        </button>
-
         {/* Progress Dots */}
-        <div className="flex justify-center gap-2 mt-7 mb-3">
+        <div className="flex justify-center gap-2 mt-4 mb-3">
           {steps.map((_, i) => (
             <button
               key={i}
-              onClick={() => {
-                soundManager.stopSpeaking();
-                setIsSpeaking(false);
-                setStep(i);
-              }}
+              onClick={() => setStep(i)}
               className={`h-2.5 rounded-full transition-all cursor-pointer ${
                 i === step ? 'w-10 bg-yellow-400 shadow-md' : i < step ? 'w-3 bg-emerald-400' : 'w-3 bg-slate-700'
               }`}

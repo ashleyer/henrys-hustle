@@ -4,8 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Zap, CheckCircle2, Volume2 } from 'lucide-react';
-import { soundManager } from '../audio/soundManager';
+import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Zap, CheckCircle2 } from 'lucide-react';
 
 export type CoachStep = 'STEER' | 'JUMP' | 'SLIDE' | 'TRICK' | 'DONE';
 
@@ -20,7 +19,6 @@ interface StepConfig {
   emoji: string;
   headline: string;
   kidHint: string;
-  voicePrompt: string;
   accentBorder: string;
 }
 
@@ -30,7 +28,6 @@ const STEP_CONFIGS: Record<Exclude<CoachStep, 'DONE'>, StepConfig> = {
     emoji: '👈 👉',
     headline: 'MOVE LEFT OR RIGHT!',
     kidHint: 'Tap LEFT / RIGHT or swipe your finger!',
-    voicePrompt: 'Hi friend! Tap Left or Right, or swipe your finger to move Henry!',
     accentBorder: 'border-sky-400',
   },
   JUMP: {
@@ -38,7 +35,6 @@ const STEP_CONFIGS: Record<Exclude<CoachStep, 'DONE'>, StepConfig> = {
     emoji: '🦘 ⬆️',
     headline: 'JUMP HIGH!',
     kidHint: 'Tap JUMP or swipe UP to leap!',
-    voicePrompt: 'Great job! Now tap Jump or swipe Up to leap high!',
     accentBorder: 'border-emerald-400',
   },
   SLIDE: {
@@ -46,7 +42,6 @@ const STEP_CONFIGS: Record<Exclude<CoachStep, 'DONE'>, StepConfig> = {
     emoji: '🏃 ⬇️',
     headline: 'DUCK & ROLL!',
     kidHint: 'Tap ROLL or swipe DOWN to slide under signs!',
-    voicePrompt: 'Awesome! Now tap Roll or swipe Down to duck under signs!',
     accentBorder: 'border-amber-400',
   },
   TRICK: {
@@ -54,7 +49,6 @@ const STEP_CONFIGS: Record<Exclude<CoachStep, 'DONE'>, StepConfig> = {
     emoji: '🤸 ✨',
     headline: 'DO A SUPER SPIN!',
     kidHint: 'Tap SPIN in the air for bonus stars!',
-    voicePrompt: 'Super slide! Now tap Spin to do a gymnastics flip!',
     accentBorder: 'border-purple-400',
   },
 };
@@ -69,40 +63,23 @@ export const InteractiveTutorialCoach: React.FC<InteractiveTutorialCoachProps> =
   useEffect(() => {
     if (activeStep === 'DONE') return;
     setCelebrating(false);
-    const cfg = STEP_CONFIGS[activeStep];
-    if (cfg) {
-      soundManager.speakText(cfg.voicePrompt);
-    }
-    return () => {
-      soundManager.stopSpeaking();
-    };
   }, [activeStep]);
 
   if (activeStep === 'DONE') return null;
 
   const cfg = STEP_CONFIGS[activeStep];
 
-  const speakCurrent = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    soundManager.speakText(cfg.voicePrompt);
-  };
-
   return (
     <div className="fixed inset-x-0 top-14 sm:top-16 z-30 flex flex-col items-center px-3 pointer-events-none select-none">
-      {/* Compact, High-Visibility Kid Tooltip Banner — Leaves Center Track 100% Clear */}
+      {/* Compact, High-Visibility Tooltip Banner — Leaves Center Track 100% Clear */}
       <div
         className={`pointer-events-auto max-w-sm w-full bg-slate-950/90 border-2 ${cfg.accentBorder} rounded-3xl px-4 py-2.5 shadow-2xl flex flex-col items-center text-center transition-transform duration-150`}
       >
-        {/* Top Row: Step Dots + Audio Readout + Skip */}
+        {/* Top Row: Step Label + Step Dots + Skip */}
         <div className="w-full flex items-center justify-between gap-2 mb-1">
-          <button
-            onClick={speakCurrent}
-            className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
-            title="Read out loud"
-          >
-            <Volume2 className="w-3 h-3" />
-            <span>Read</span>
-          </button>
+          <span className="px-2 py-0.5 rounded-lg bg-slate-800 text-emerald-300 text-[10px] font-bold">
+            STEP {cfg.stepNumber} OF 4
+          </span>
 
           <div className="flex items-center gap-1.5">
             {[1, 2, 3, 4].map((num) => (
@@ -122,7 +99,6 @@ export const InteractiveTutorialCoach: React.FC<InteractiveTutorialCoachProps> =
           <button
             onClick={(e) => {
               e.stopPropagation();
-              soundManager.stopSpeaking();
               onSkip();
             }}
             className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold cursor-pointer"

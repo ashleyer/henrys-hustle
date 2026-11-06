@@ -14,26 +14,7 @@ interface TriviaModalProps {
 }
 
 export const TriviaModal: React.FC<TriviaModalProps> = ({ trivia, onClose }) => {
-  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const isBoston = trivia.category === 'BOSTON_HISTORY';
-
-  // Read aloud automatically or on click
-  const handleSpeak = () => {
-    if (isSpeaking) {
-      soundManager.stopSpeaking();
-      setIsSpeaking(false);
-      return;
-    }
-    setIsSpeaking(true);
-    const textToRead = `${trivia.title}! ${trivia.subtitle}. ${trivia.funFact} Fun Fact: ${trivia.didYouKnow}`;
-    soundManager.speakText(textToRead, () => setIsSpeaking(false));
-  };
-
-  useEffect(() => {
-    return () => {
-      soundManager.stopSpeaking();
-    };
-  }, []);
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/85 backdrop-blur-md select-none font-sans animate-in fade-in zoom-in-95">
@@ -44,31 +25,14 @@ export const TriviaModal: React.FC<TriviaModalProps> = ({ trivia, onClose }) => 
       >
         {/* Close Button */}
         <button
-          onClick={() => {
-            soundManager.stopSpeaking();
-            onClose();
-          }}
+          onClick={onClose}
           className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-xl bg-slate-800/80 cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* Read to Me Button */}
-        <button
-          onClick={handleSpeak}
-          className={`absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 transition cursor-pointer border ${
-            isSpeaking
-              ? 'bg-rose-500 text-white border-rose-300 animate-pulse'
-              : 'bg-yellow-400/20 text-yellow-300 border-yellow-400/50 hover:bg-yellow-400/30'
-          }`}
-          title="Listen to this fun fact"
-        >
-          <Volume2 className="w-3.5 h-3.5" />
-          <span>{isSpeaking ? 'Stop Voice' : '🔊 Read Aloud!'}</span>
-        </button>
-
         {/* Top Category Badge */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider mx-auto mt-6 mb-2 bg-slate-800 border border-slate-700 shadow-md">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider mx-auto mt-3 mb-2 bg-slate-800 border border-slate-700 shadow-md">
           <span className="text-xl">{trivia.icon}</span>
           <span className={isBoston ? 'text-emerald-400' : 'text-amber-400'}>
             {isBoston ? 'BOSTON DISCOVERY CARD' : 'GYMNASTICS CHAMPION SECRET'}

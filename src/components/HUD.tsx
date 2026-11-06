@@ -171,19 +171,6 @@ export const HUD: React.FC<HUDProps> = ({
             )}
 
             <button
-              onClick={toggleVoice}
-              className={`w-10 h-10 rounded-xl border flex items-center justify-center transition active:scale-95 cursor-pointer ${
-                isVoiceOn
-                  ? 'bg-slate-950/80 border-yellow-400/70 text-yellow-300'
-                  : 'bg-slate-950/80 border-slate-700/80 text-slate-500'
-              }`}
-              title={isVoiceOn ? 'Tour Guide Voice ON' : 'Tour Guide Voice OFF'}
-              aria-label="Toggle Tour Guide Voice"
-            >
-              {isVoiceOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-            </button>
-
-            <button
               onClick={onToggleMute}
               className="w-10 h-10 rounded-xl bg-slate-950/80 border border-slate-700/80 text-slate-200 flex items-center justify-center transition active:scale-95 cursor-pointer"
               title={isMuted ? 'Unmute Sound' : 'Mute Sound'}
