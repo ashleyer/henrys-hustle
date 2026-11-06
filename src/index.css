@@ -1,17 +1,41 @@
 @import "tailwindcss";
 
 @layer base {
+  html, body, #root {
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
-    font-family: 'Fredoka', 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Fredoka', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     user-select: none;
     -webkit-user-select: none;
-    touch-action: manipulation;
-    overflow: hidden;
+    touch-action: none;
   }
 
   .font-arcade {
     font-family: 'Bungee', 'Fredoka', cursive, sans-serif;
   }
+}
+
+.pt-safe {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+
+.pb-safe {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+.px-safe {
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+  padding-right: max(0.75rem, env(safe-area-inset-right));
 }
 
 @keyframes bounceSubtle {

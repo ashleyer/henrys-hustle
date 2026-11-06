@@ -5,12 +5,14 @@
 
 import React from 'react';
 import { CharacterOutfit, GameStats, UserProfile } from '../types/game';
-import { Play, Trophy, Sparkles, Star, ShoppingBag, Award, BookOpen, Palette, User, Zap } from 'lucide-react';
+import { Play, Trophy, Sparkles, Star, ShoppingBag, Award, BookOpen, Palette, User, Zap, Volume2 } from 'lucide-react';
 import { AshleyFooter } from './AshleyFooter';
+import { PWAInstallButton } from './PWAInstallButton';
 import { soundManager } from '../audio/soundManager';
 
 interface StartScreenProps {
   onStart: () => void;
+  onStartWithCoach?: () => void;
   onOpenShop: () => void;
   onOpenStudio: () => void;
   onOpenMissions: () => void;
@@ -28,6 +30,7 @@ interface StartScreenProps {
 
 export const StartScreen: React.FC<StartScreenProps> = ({
   onStart,
+  onStartWithCoach,
   onOpenShop,
   onOpenStudio,
   onOpenMissions,
@@ -49,175 +52,198 @@ export const StartScreen: React.FC<StartScreenProps> = ({
     if (onSetPace) onSetPace(pace);
   };
 
+  const handleSpeakWelcome = () => {
+    soundManager.speakText(
+      "Welcome to Henry's Hub Hustle! Tap the big green Play button to run, jump over hurdles, and collect shiny gold stars on the Boston subway!"
+    );
+  };
+
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center p-3 md:p-6 bg-slate-950/75 backdrop-blur-sm select-none font-sans overflow-y-auto">
-      <div className="max-w-md w-full bg-slate-900/95 border-2 border-emerald-500/60 rounded-3xl p-5 md:p-6 shadow-2xl flex flex-col items-center text-center relative overflow-hidden my-auto">
-        {/* Top User Account & Audio Bar */}
-        <div className="w-full flex items-center justify-between mb-2">
+    <div className="absolute inset-0 z-30 flex items-center justify-center p-2.5 sm:p-5 bg-slate-950/70 select-none font-sans overflow-y-auto pt-safe pb-safe">
+      <div className="max-w-md sm:max-w-lg w-full bg-slate-900/95 border-2 border-emerald-500/70 rounded-3xl p-4 sm:p-6 shadow-2xl flex flex-col items-center text-center relative overflow-hidden my-auto">
+        {/* Top User Account, Install App & Audio Bar */}
+        <div className="w-full flex items-center justify-between gap-1.5 mb-2 flex-wrap">
           <div className="flex items-center gap-1.5">
-            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[11px] font-black uppercase tracking-wider">
-              <span>🚇 BOSTON T</span>
-            </div>
+            <button
+              onClick={handleSpeakWelcome}
+              className="px-2.5 py-1 rounded-xl border border-emerald-400/50 bg-emerald-950/80 hover:bg-emerald-900/80 text-emerald-200 text-[11px] font-bold flex items-center gap-1 transition cursor-pointer whitespace-nowrap shrink-0"
+              title="Read out loud for kids"
+            >
+              <Volume2 className="w-3.5 h-3.5 text-emerald-300" />
+              <span>Read to Me</span>
+            </button>
+
             {onToggleMusic && (
               <button
                 onClick={onToggleMusic}
-                className={`px-2.5 py-1 rounded-full border text-[11px] font-bold flex items-center gap-1 transition cursor-pointer ${
+                className={`px-2.5 py-1 rounded-xl border text-[11px] font-bold flex items-center gap-1 transition cursor-pointer whitespace-nowrap shrink-0 ${
                   !isMusicMuted
-                    ? 'bg-indigo-950/80 border-indigo-500/60 text-indigo-300 hover:bg-indigo-900/60'
-                    : 'bg-slate-800 border-slate-700 text-rose-400 hover:bg-slate-700'
+                    ? 'bg-indigo-950/80 border-indigo-500/60 text-indigo-200 hover:bg-indigo-900/60'
+                    : 'bg-slate-800 border-slate-700 text-rose-300 hover:bg-slate-700'
                 }`}
-                title={isMusicMuted ? 'Unmute Background Music 🎵' : 'Mute Background Music 🔇'}
+                title={isMusicMuted ? 'Turn Music ON' : 'Mute Music'}
               >
-                <span>{isMusicMuted ? '🔇 Music: OFF' : '🎵 Music: ON'}</span>
+                <span>{isMusicMuted ? '🔇 Music Off' : '🎵 Music On'}</span>
               </button>
             )}
+
+            <PWAInstallButton />
           </div>
 
           <button
             onClick={onOpenAuth}
-            className="flex items-center gap-1.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 px-3 py-1 rounded-full text-xs font-bold text-slate-200 transition cursor-pointer"
+            className="flex items-center gap-1.5 bg-slate-800/90 hover:bg-slate-700 border border-slate-700 px-2.5 py-1 rounded-xl text-[11px] font-bold text-slate-200 transition cursor-pointer whitespace-nowrap shrink-0"
           >
             {user.isLoggedIn ? (
               <>
-                <img src={user.picture} alt="" className="w-4 h-4 rounded-full border border-emerald-400" />
-                <span className="truncate max-w-[100px] text-emerald-400">{user.name}</span>
+                <img src={user.picture} alt={user.name} referrerPolicy="no-referrer" className="w-4 h-4 rounded-full border border-emerald-400" />
+                <span className="truncate max-w-[90px] text-emerald-300">{user.name}</span>
               </>
             ) : (
               <>
                 <User className="w-3.5 h-3.5 text-yellow-400" />
-                <span>Google Sign In</span>
+                <span>Sign In</span>
               </>
             )}
           </button>
         </div>
 
         {/* Title */}
-        <h1 className="font-arcade text-3xl md:text-4xl text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-yellow-300 to-amber-400 drop-shadow-lg leading-tight">
+        <h1 className="font-arcade text-2xl sm:text-4xl text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-yellow-300 to-amber-400 drop-shadow leading-tight">
           HENRY’S HUB HUSTLE
         </h1>
-        <p className="text-slate-300 text-xs md:text-sm mt-0.5 max-w-xs font-medium">
-          Dodge Boston T trains, vault over hurdles, and pull off Olympic gymnastics flips across America's first subway!
+        <p className="text-slate-300 text-xs sm:text-sm mt-0.5 max-w-sm font-medium">
+          Run on Boston trains, jump over hurdles, and collect shiny gold stars!
         </p>
 
-        {/* High Score & Bank Banner */}
-        <div className="grid grid-cols-2 gap-3 my-3 w-full">
+        {/* High Score & Star Bank */}
+        <div className="grid grid-cols-2 gap-2.5 my-2.5 w-full">
           <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-2 flex flex-col items-center">
-            <span className="text-[10px] text-slate-400 font-bold uppercase">HIGH SCORE</span>
-            <span className="font-arcade text-xl text-yellow-400">{stats.highScore.toLocaleString()}</span>
+            <span className="text-[10px] text-slate-400 font-bold uppercase">BEST SCORE</span>
+            <span className="font-arcade text-lg sm:text-xl text-yellow-400 tabular-nums">{stats.highScore.toLocaleString()}</span>
           </div>
           <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-2 flex flex-col items-center">
-            <span className="text-[10px] text-slate-400 font-bold uppercase">STAR BANK</span>
-            <span className="font-arcade text-xl text-amber-300 flex items-center gap-1.5">
+            <span className="text-[10px] text-slate-400 font-bold uppercase">MY STARS</span>
+            <span className="font-arcade text-lg sm:text-xl text-amber-300 flex items-center gap-1 tabular-nums">
               <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
               {stats.starsInBank}
             </span>
           </div>
         </div>
 
-        {/* Character Preview & Studio Button */}
-        <div className="w-full bg-slate-950/60 rounded-2xl p-3 border border-slate-800 mb-2.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        {/* Character Preview & Customize Button */}
+        <div className="w-full bg-slate-950/70 rounded-2xl p-2.5 border border-slate-800 mb-2 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
             <div
-              className="w-11 h-11 rounded-xl border-2 border-white/20 flex items-center justify-center font-arcade text-lg text-white font-black shadow-inner"
+              className="w-10 h-10 rounded-xl border-2 border-white/20 flex items-center justify-center font-arcade text-base text-white font-black shrink-0"
               style={{ backgroundColor: selectedOutfit.suitColor }}
             >
               #7
             </div>
-            <div className="text-left">
-              <div className="text-xs md:text-sm font-bold text-white flex items-center gap-1.5">
-                <span>{selectedOutfit.name}</span>
-              </div>
-              <div className="text-[11px] text-slate-400">{selectedOutfit.title}</div>
+            <div className="text-left min-w-0">
+              <div className="text-xs sm:text-sm font-bold text-white truncate">{selectedOutfit.name}</div>
+              <div className="text-[11px] text-slate-400 truncate">{selectedOutfit.title}</div>
             </div>
           </div>
           <button
             onClick={onOpenStudio}
-            className="text-xs font-bold text-yellow-400 hover:text-yellow-300 bg-yellow-500/10 hover:bg-yellow-500/20 px-3 py-1.5 rounded-xl border border-yellow-400/30 flex items-center gap-1 transition cursor-pointer"
+            className="text-xs font-bold text-yellow-300 hover:text-yellow-200 bg-yellow-500/15 hover:bg-yellow-500/25 px-3 py-2 rounded-xl border border-yellow-400/40 flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap shrink-0"
           >
             <Palette className="w-3.5 h-3.5" />
-            <span>Customize</span>
+            <span>Dress Up</span>
           </button>
         </div>
 
-        {/* Game Speed Mode Selector */}
-        <div className="w-full bg-slate-950/80 border border-slate-800 rounded-2xl p-2 mb-3 flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-400 flex items-center gap-1 pl-1">
+        {/* Kid-Friendly Speed Selector */}
+        <div className="w-full bg-slate-950/80 border border-slate-800 rounded-2xl p-2 mb-2.5 flex items-center justify-between gap-2">
+          <span className="text-xs font-bold text-slate-300 flex items-center gap-1 pl-1 whitespace-nowrap">
             <Zap className="w-3.5 h-3.5 text-yellow-400" /> SPEED:
           </span>
-          <div className="flex gap-1.5">
+          <div className="flex gap-1.5 flex-1 justify-end">
             <button
               onClick={() => handlePaceChange('JUNIOR')}
-              className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1 ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
                 currentPace === 'JUNIOR'
-                  ? 'bg-emerald-500 text-slate-950 shadow-md'
-                  : 'bg-slate-800 text-slate-400 hover:text-white'
+                  ? 'bg-emerald-500 text-slate-950 shadow'
+                  : 'bg-slate-800 text-slate-300 hover:text-white'
               }`}
             >
-              <span>🌟 Junior Explorer</span>
+              <span>🐢 Easy (Kids)</span>
             </button>
             <button
               onClick={() => handlePaceChange('PRO')}
-              className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1 ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
                 currentPace === 'PRO'
-                  ? 'bg-amber-500 text-slate-950 shadow-md'
-                  : 'bg-slate-800 text-slate-400 hover:text-white'
+                  ? 'bg-amber-500 text-slate-950 shadow'
+                  : 'bg-slate-800 text-slate-300 hover:text-white'
               }`}
             >
-              <span>⚡ Pro Hustle</span>
+              <span>🚀 Fast</span>
             </button>
           </div>
         </div>
 
-        {/* Quick Menu Grid */}
-        <div className="grid grid-cols-4 gap-2 w-full mb-3">
+        {/* Quick Menu Grid — Simple 1-Word Kid Labels */}
+        <div className="grid grid-cols-4 gap-2 w-full mb-2.5">
           <button
             onClick={onOpenShop}
-            className="py-2 rounded-2xl bg-slate-800/70 hover:bg-slate-800 text-slate-200 border border-slate-700 flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer"
+            className="min-h-[48px] py-2 rounded-2xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700 flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer"
           >
             <ShoppingBag className="w-4 h-4 text-cyan-400" />
-            <span className="text-[9px] font-bold">SHOP</span>
+            <span className="text-[10px] font-bold">SHOP</span>
           </button>
           <button
             onClick={onOpenLeaderboard}
-            className="py-2 rounded-2xl bg-slate-800/70 hover:bg-slate-800 text-slate-200 border border-slate-700 flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer"
+            className="min-h-[48px] py-2 rounded-2xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700 flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer"
           >
             <Trophy className="w-4 h-4 text-yellow-400" />
-            <span className="text-[9px] font-bold">LEADERBOARD</span>
+            <span className="text-[10px] font-bold">WINNERS</span>
           </button>
           <button
             onClick={onOpenMissions}
-            className="py-2 rounded-2xl bg-slate-800/70 hover:bg-slate-800 text-slate-200 border border-slate-700 flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer"
+            className="min-h-[48px] py-2 rounded-2xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700 flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer"
           >
             <Award className="w-4 h-4 text-amber-400" />
-            <span className="text-[9px] font-bold">MISSIONS</span>
+            <span className="text-[10px] font-bold">GOALS</span>
           </button>
           <button
             onClick={onOpenTutorial}
-            className="py-2 rounded-2xl bg-slate-800/70 hover:bg-slate-800 text-slate-200 border border-slate-700 flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer"
+            className="min-h-[48px] py-2 rounded-2xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700 flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer"
           >
             <BookOpen className="w-4 h-4 text-emerald-400" />
-            <span className="text-[9px] font-bold">TUTORIAL</span>
+            <span className="text-[10px] font-bold">GUIDE</span>
           </button>
         </div>
 
-        {/* Big Start Hustle Button */}
+        {/* Big Play Button */}
         <button
           onClick={onStart}
-          className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-400 via-yellow-400 to-amber-500 hover:from-emerald-300 hover:to-amber-400 text-slate-950 font-arcade text-xl tracking-wider shadow-[0_0_28px_rgba(16,185,129,0.5)] transition transform active:scale-95 flex items-center justify-center gap-2 mb-2 cursor-pointer font-black"
+          className="w-full py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-emerald-400 via-yellow-400 to-amber-500 hover:from-emerald-300 hover:to-amber-400 text-slate-950 font-arcade text-xl tracking-wider shadow-xl transition transform active:scale-95 flex items-center justify-center gap-2 mb-2 cursor-pointer font-black"
         >
           <Play className="w-6 h-6 fill-slate-950" />
-          <span>START HUB HUSTLE! 🚀</span>
+          <span>PLAY NOW! 🚀</span>
         </button>
 
-        <button
-          onClick={onOpenTrophyRoom}
-          className="text-xs text-slate-400 hover:text-white font-semibold flex items-center justify-center gap-1.5 py-0.5 mb-2 cursor-pointer"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
-          <span>Henry's Gymnastics Trophy Room</span>
-        </button>
+        {/* Bottom Links: Practice Walk-Through & Trophy Room */}
+        <div className="w-full flex items-center justify-between px-2 mb-1.5 text-xs">
+          {onStartWithCoach && (
+            <button
+              onClick={onStartWithCoach}
+              className="text-emerald-300 hover:text-emerald-200 font-bold flex items-center gap-1 py-1 cursor-pointer"
+            >
+              <span>👋 Practice Walk-Through</span>
+            </button>
+          )}
+          <button
+            onClick={onOpenTrophyRoom}
+            className="text-yellow-300 hover:text-yellow-200 font-bold flex items-center gap-1 py-1 cursor-pointer ml-auto"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+            <span>Trophy Room</span>
+          </button>
+        </div>
 
-        {/* Ashley's Footer (Preserved exact memory spec) */}
+        {/* Ashley's Footer */}
         <div className="w-full pt-2 border-t border-slate-800/80">
           <AshleyFooter />
         </div>

@@ -30,14 +30,18 @@ import { GoogleAuthModal } from './components/GoogleAuthModal';
 import { LeaderboardModal } from './components/LeaderboardModal';
 import { TriviaModal } from './components/TriviaModal';
 import { TutorialModal } from './components/TutorialModal';
+import { InteractiveTutorialCoach, CoachStep } from './components/InteractiveTutorialCoach';
 import { AshleyFooter } from './components/AshleyFooter';
 import { soundManager } from './audio/soundManager';
 import { Play } from 'lucide-react';
+
+const COACH_STORAGE_KEY = 'hub_hustle_coach_done_v1';
 
 export default function App() {
   const engineRef = useRef<GameEngine | null>(null);
 
   const [gameStatus, setGameStatus] = useState<GameStatus>('MENU');
+  const [coachStep, setCoachStep] = useState<CoachStep>('DONE');
   const [stats, setStats] = useState<GameStats>({
     score: 0,
     distance: 0,
@@ -113,6 +117,39 @@ export default function App() {
   const [isTrophyRoomOpen, setIsTrophyRoomOpen] = useState<boolean>(false);
   const [activeTrivia, setActiveTrivia] = useState<EducationalTrivia | null>(null);
 
+  const handleCoachAction = useCallback((action: 'STEER' | 'JUMP' | 'SLIDE' | 'TRICK') => {
+    setCoachStep((prev) => {
+      if (prev === 'DONE') return 'DONE';
+      if (prev === 'STEER' && action === 'STEER') {
+        soundManager.playLetter();
+        return 'JUMP';
+      }
+      if (prev === 'JUMP' && action === 'JUMP') {
+        soundManager.playLetter();
+        return 'SLIDE';
+      }
+      if (prev === 'SLIDE' && action === 'SLIDE') {
+        soundManager.playLetter();
+        return 'TRICK';
+      }
+      if (prev === 'TRICK' && action === 'TRICK') {
+        soundManager.playPowerUp();
+        try {
+          localStorage.setItem(COACH_STORAGE_KEY, 'true');
+        } catch {}
+        return 'DONE';
+      }
+      return prev;
+    });
+  }, []);
+
+  const handleSkipCoach = useCallback(() => {
+    setCoachStep('DONE');
+    try {
+      localStorage.setItem(COACH_STORAGE_KEY, 'true');
+    } catch {}
+  }, []);
+
   // Bind engine
   const handleEngineReady = useCallback((engine: GameEngine) => {
     engineRef.current = engine;
@@ -132,7 +169,7 @@ export default function App() {
       setUnlockedTriviaToast(trivia);
       setTimeout(() => {
         setUnlockedTriviaToast(curr => (curr?.id === trivia.id ? null : curr));
-      }, 4500);
+      }, 3600);
     };
 
     setStats({ ...engine.stats });
@@ -179,17 +216,22 @@ export default function App() {
       if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') {
         if (isInverted) engine.moveRight();
         else engine.moveLeft();
+        handleCoachAction('STEER');
       } else if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') {
         if (isInverted) engine.moveLeft();
         else engine.moveRight();
+        handleCoachAction('STEER');
       } else if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'w' || e.key === ' ') {
         e.preventDefault();
         engine.jump();
+        handleCoachAction('JUMP');
       } else if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's') {
         e.preventDefault();
         engine.slide();
+        handleCoachAction('SLIDE');
       } else if (e.key.toLowerCase() === 'f' || e.key.toLowerCase() === 'e') {
         engine.doTrickButton();
+        handleCoachAction('TRICK');
       } else if (e.key === 'Shift') {
         engine.deployChalkBoard();
       } else if (e.key.toLowerCase() === 'p' || e.key === 'Escape') {
@@ -200,11 +242,26 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isInverted]);
+  }, [isInverted, handleCoachAction]);
 
   const handleStartGame = () => {
     closeAllModals();
     engineRef.current?.startGame();
+    try {
+      const coachDone = localStorage.getItem(COACH_STORAGE_KEY) === 'true';
+      if (!coachDone) {
+        setCoachStep('STEER');
+      }
+    } catch {
+      setCoachStep('STEER');
+    }
+  };
+
+  const handleStartWithCoach = () => {
+    closeAllModals();
+    engineRef.current?.setSpeedPace('JUNIOR');
+    engineRef.current?.startGame();
+    setCoachStep('STEER');
   };
 
   const closeAllModals = () => {
@@ -321,10 +378,35 @@ export default function App() {
     engineRef.current?.deployChalkBoard();
   };
 
+  const handlePracticeActionFromCoach = (action: 'STEER' | 'JUMP' | 'SLIDE' | 'TRICK') => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    if (action === 'STEER') {
+      if (engine.currentLane <= 0) engine.moveRight();
+      else engine.moveLeft();
+    } else if (action === 'JUMP') {
+      engine.jump();
+    } else if (action === 'SLIDE') {
+      engine.slide();
+    } else if (action === 'TRICK') {
+      engine.doTrickButton();
+    }
+    handleCoachAction(action);
+  };
+
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-slate-950 font-sans select-none">
+    <div className="relative w-full h-full h-[100dvh] overflow-hidden bg-slate-950 font-sans select-none">
       {/* 3D WebGL Canvas */}
       <ThreeCanvas onEngineReady={handleEngineReady} />
+
+      {/* Interactive First-Time Player Tooltip Walk-Through */}
+      {gameStatus === 'PLAYING' && coachStep !== 'DONE' && (
+        <InteractiveTutorialCoach
+          activeStep={coachStep}
+          onSkip={handleSkipCoach}
+          onPracticeAction={handlePracticeActionFromCoach}
+        />
+      )}
 
       {/* In-Game HUD */}
       {(gameStatus === 'PLAYING' || gameStatus === 'PAUSED') && (
@@ -357,6 +439,7 @@ export default function App() {
           isBoardActive={stats.activeBoardActive}
           isInverted={isInverted}
           starCount={stats.starsCollected}
+          onActionTriggered={handleCoachAction}
         />
       )}
 
@@ -416,6 +499,7 @@ export default function App() {
       {gameStatus === 'MENU' && (
         <StartScreen
           onStart={handleStartGame}
+          onStartWithCoach={handleStartWithCoach}
           onOpenShop={() => setIsShopOpen(true)}
           onOpenStudio={() => setIsStudioOpen(true)}
           onOpenMissions={() => setIsMissionsOpen(true)}

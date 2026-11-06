@@ -1174,9 +1174,11 @@ export class GameEngine {
 
   private updateCamera(dt: number) {
     const isFlying = this.activePowerUps.has('SKY_RINGS');
-    const targetCamX = this.posX * 0.42;
-    const targetCamY = isFlying ? 11.2 : Math.max(3.2, this.posY * 0.4 + 3.2);
-    const targetCamZ = this.posZ - 5.8;
+    const isPortrait = this.camera.aspect < 0.85;
+    const targetCamX = this.posX * (isPortrait ? 0.32 : 0.42);
+    const baseHeight = isPortrait ? 3.7 : 3.2;
+    const targetCamY = isFlying ? 11.2 : Math.max(baseHeight, this.posY * 0.4 + baseHeight);
+    const targetCamZ = this.posZ - (isPortrait ? 6.6 : 5.8);
 
     this.camera.position.x = THREE.MathUtils.damp(this.camera.position.x, targetCamX, 12.0, dt);
     this.camera.position.y = THREE.MathUtils.damp(this.camera.position.y, targetCamY, 10.0, dt);
@@ -1191,9 +1193,9 @@ export class GameEngine {
     }
 
     this.camera.lookAt(
-      this.posX * 0.35,
-      isFlying ? 9.4 : this.posY + 1.2,
-      this.posZ + 6.0
+      this.posX * (isPortrait ? 0.25 : 0.35),
+      isFlying ? 9.4 : this.posY + 1.15,
+      this.posZ + 6.5
     );
   }
 }
