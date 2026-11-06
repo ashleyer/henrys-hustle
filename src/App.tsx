@@ -356,6 +356,7 @@ export default function App() {
           boardsAvailable={stats.boardsAvailable}
           isBoardActive={stats.activeBoardActive}
           isInverted={isInverted}
+          starCount={stats.starsCollected}
         />
       )}
 

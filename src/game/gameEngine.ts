@@ -1044,12 +1044,26 @@ export class GameEngine {
 
     if (col.type === 'STAR') {
       soundManager.playStarCollect();
+      try {
+        if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+          navigator.vibrate(12);
+        }
+      } catch {
+        // Ignore vibration error on unsupported platforms
+      }
       const mult = this.activePowerUps.has('MULTIPLIER') || this.activePowerUps.has('FEVER_MODE') ? 2 : 1;
       this.stats.starsCollected += mult;
       this.stats.score += 15 * mult;
       this.updateMissionProgress('m_stars', mult);
     } else if (col.type === 'BOSTON_MEDALLION') {
       soundManager.playLetter();
+      try {
+        if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+          navigator.vibrate([20, 30, 20]);
+        }
+      } catch {
+        // Ignore vibration error on unsupported platforms
+      }
       this.stats.score += 300;
       this.stats.starsCollected += 10;
 

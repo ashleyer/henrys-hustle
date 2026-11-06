@@ -17,6 +17,7 @@ interface TouchControlsProps {
   boardsAvailable: number;
   isBoardActive: boolean;
   isInverted?: boolean;
+  starCount?: number;
 }
 
 export const TouchControls: React.FC<TouchControlsProps> = ({
@@ -29,10 +30,12 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
   boardsAvailable,
   isBoardActive,
   isInverted = false,
+  starCount = 0,
 }) => {
   const lastTapRef = useRef<number>(0);
   const touchStartPos = useRef<{ x: number; y: number; time: number } | null>(null);
   const hasTriggeredSwipe = useRef<boolean>(false);
+  const prevStarCount = useRef<number>(starCount);
   const [lastTouchFeedback, setLastTouchFeedback] = useState<string | null>(null);
 
   // Touch sensitivity settings: ULTRA = 8px, HIGH = 14px, NORMAL = 22px
@@ -62,23 +65,33 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
     }
   }, [sensitivity]);
 
-  const triggerHaptic = () => {
+  // Short haptic pulses via navigator.vibrate for mobile responsiveness
+  const triggerHaptic = useCallback((pattern: number | number[] = 15) => {
     try {
       if (typeof window !== 'undefined' && 'vibrate' in navigator) {
-        navigator.vibrate(15);
+        navigator.vibrate(pattern);
       }
     } catch {
       // Ignore vibration error on unsupported platforms
     }
-  };
+  }, []);
 
-  const triggerFeedback = useCallback((label: string) => {
+  // Trigger crisp haptic vibration when Henry collects a star
+  useEffect(() => {
+    if (starCount > prevStarCount.current) {
+      // Crisp 10ms star collection pulse
+      triggerHaptic(10);
+    }
+    prevStarCount.current = starCount;
+  }, [starCount, triggerHaptic]);
+
+  const triggerFeedback = useCallback((label: string, hapticPattern: number | number[] = 15) => {
     setLastTouchFeedback(label);
-    triggerHaptic();
+    triggerHaptic(hapticPattern);
     setTimeout(() => {
       setLastTouchFeedback(curr => (curr === label ? null : curr));
     }, 450);
-  }, []);
+  }, [triggerHaptic]);
 
   // Direction handlers:
   // When isInverted is false (normal):
@@ -88,10 +101,10 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
     soundManager.initContext();
     if (isInverted) {
       onRight();
-      triggerFeedback('INVERT: RIGHT ➡️');
+      triggerFeedback('INVERT: RIGHT ➡️', 14);
     } else {
       onLeft();
-      triggerFeedback('LEFT ⬅️');
+      triggerFeedback('LEFT ⬅️', 14);
     }
   }, [isInverted, onLeft, onRight, triggerFeedback]);
 
@@ -99,23 +112,25 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
     soundManager.initContext();
     if (isInverted) {
       onLeft();
-      triggerFeedback('INVERT: LEFT ⬅️');
+      triggerFeedback('INVERT: LEFT ⬅️', 14);
     } else {
       onRight();
-      triggerFeedback('RIGHT ➡️');
+      triggerFeedback('RIGHT ➡️', 14);
     }
   }, [isInverted, onLeft, onRight, triggerFeedback]);
 
+  // Jump: distinctive punchy 25ms haptic pulse
   const handleJumpAction = useCallback(() => {
     soundManager.initContext();
     onJump();
-    triggerFeedback('JUMP ⬆️');
+    triggerFeedback('JUMP ⬆️', 25);
   }, [onJump, triggerFeedback]);
 
+  // Slide: smooth dual 15ms-10ms slide rumble
   const handleSlideAction = useCallback(() => {
     soundManager.initContext();
     onSlide();
-    triggerFeedback('DUCK 🏃');
+    triggerFeedback('DUCK 🏃', [18, 25, 18]);
   }, [onSlide, triggerFeedback]);
 
   const cycleSensitivity = (e: React.MouseEvent | React.PointerEvent) => {
